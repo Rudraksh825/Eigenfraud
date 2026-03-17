@@ -1,0 +1,22 @@
+seed: 42
+device: cuda
+run_name: attack_freq
+
+data:
+  root: ~/data
+  genimage_generator: "Stable Diffusion V1.4"
+  image_size: 256
+  batch_size: 16
+  num_workers: 2
+
+model:
+  type: resnet2d
+
+attack:
+  type: pgd_freq
+  eps_freq: 0.05
+  alpha_freq: 0.005
+  num_iter: 20
+  spatial_eps: null
+  n_samples: 1000
+  checkpoint: outputs/checkpoints/resnet2d_sdv14_best.pt

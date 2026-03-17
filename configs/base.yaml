@@ -1,0 +1,50 @@
+seed: 42
+device: cuda
+run_name: run
+
+data:
+  root: ~/data
+  genimage_generator: "Stable Diffusion V1.4"
+  ff_compression: c23
+  ff_methods: [Deepfakes, Face2Face, FaceSwap, NeuralTextures]
+  image_size: 256
+  batch_size: 64
+  num_workers: 4
+
+aug:
+  blur_prob: 0.5
+  jpeg_prob: 0.5
+  jpeg_quality_range: [30, 95]
+  blur_sigma_range: [0.0, 3.0]
+
+model:
+  type: resnet2d
+  pretrained: false
+  input_dim: 128  # image_size // 2, used by cnn1d
+
+train:
+  epochs: 20
+  lr: 1.0e-4
+  weight_decay: 1.0e-4
+  checkpoint_dir: outputs/checkpoints
+  log_wandb: false
+
+attack:
+  type: pgd_freq
+  eps: 0.031372549  # 8/255
+  alpha: 0.007843   # 2/255
+  num_iter: 20
+  eps_freq: 0.05
+  alpha_freq: 0.005
+  spatial_eps: null
+  band_low: 0.0
+  band_high: 1.0
+  n_samples: 1000
+  checkpoint: ""
+
+robustness:
+  jpeg_qualities: [100, 90, 75, 50, 30]
+  resize_factors: [1.0, 0.9, 0.8, 0.7, 0.5]
+  blur_sigmas: [0.0, 1.0, 2.0, 3.0]
+  checkpoint: ""
+  output_csv: outputs/results/robustness.csv
