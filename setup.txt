@@ -1,0 +1,53 @@
+EIGENFRAUD — SSH SETUP INSTRUCTIONS
+=====================================
+
+
+1. INSTALL DEPENDENCIES
+-----------------------
+pip install -r requirements.txt
+
+Note: if you need a specific CUDA version of PyTorch (e.g. cu118), run this
+instead of (or before) the above:
+  pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+  pip install -r requirements.txt
+
+
+2. SET UP KAGGLE CREDENTIALS (for CIFAKE)
+------------------------------------------
+You need a Kaggle account and API token.
+  a. Go to https://www.kaggle.com/settings → API → "Create New Token"
+     This downloads kaggle.json containing your username and key.
+  b. On the SSH machine, set env vars:
+       export KAGGLE_USERNAME=your_username
+       export KAGGLE_KEY=your_api_key
+     Or place the file directly:
+       mkdir -p ~/.kaggle
+       echo '{"username":"your_username","key":"your_api_key"}' > ~/.kaggle/kaggle.json
+       chmod 600 ~/.kaggle/kaggle.json
+
+
+3. DOWNLOAD DATA
+----------------
+
+  CIFAKE only (no FaceForensics yet):
+    bash setup_data.sh
+
+  CIFAKE + FaceForensics++ (after form approval):
+    bash setup_data.sh --ff-url <server_url_from_approval_email>
+
+  FaceForensics++ only (if CIFAKE already downloaded):
+    echo "" | python faceforensics.txt data/raw/faceforensics \
+        --dataset original --compression c23 --type videos --server EU
+    echo "" | python faceforensics.txt data/raw/faceforensics \
+        --dataset Deepfakes --compression c23 --type videos --server EU
+
+  Data lands in:
+    data/raw/cifake/        ← CIFAKE
+    data/raw/faceforensics/ ← FaceForensics++
+
+
+4. ADDING MORE DATASETS LATER
+------------------------------
+Edit setup_data.sh and add a new block following the same pattern.
+Re-run bash setup_data.sh — already-downloaded files are skipped automatically
+(the Kaggle CLI skips existing downloads; faceforensics.txt skips existing files).
