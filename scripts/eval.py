@@ -49,7 +49,7 @@ def collate_fn(batch):
 
 def main():
     args = parse_args()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
     # Load checkpoint
     ckpt = torch.load(args.checkpoint, map_location=device)

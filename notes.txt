@@ -1,0 +1,15 @@
+src/
+transform.py: the math layer
+    raw image -> grayscale 224x224 float array -> 2D log-power spectrum -> 1D azimuthal average (112, )
+    
+
+
+
+dataset.py: wraps transforms into a PyTorch dataset
+models.py: 1D and 2D CNN definitions
+
+
+scripts/
+train.py: training loop
+eval.py: evaluation/metrics
+

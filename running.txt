@@ -1,0 +1,9 @@
+Checking everything's in order: notebooks/01_eda.ipynb
+
+
+Training 1D:
+python scripts/train.py --model 1d --train-dir data/processed/birdy654/cifake-real-and-ai-generated-synthetic-images/versions/3/train --val-dir data/processed/birdy654/cifake-real-and-ai-generated-synthetic-images/versions/3/test
+
+
+Training 2D:
+python scripts/train.py --model 2d --train-dir data/processed/birdy654/cifake-real-and-ai-generated-synthetic-images/versions/3/train --val-dir data/processed/birdy654/cifake-real-and-ai-generated-synthetic-images/versions/3/test   

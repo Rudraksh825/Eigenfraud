@@ -21,6 +21,8 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import roc_auc_score
 import numpy as np
 
+from tqdm import tqdm
+
 from src.dataset import FrequencyDataset, make_splits
 from src.models import build_model, count_parameters
 
@@ -53,13 +55,14 @@ def collate_fn_1d(batch):
     return torch.stack(spec2d), torch.stack(prof1d), torch.tensor(labels)
 
 
-def run_epoch(model, loader, criterion, optimizer, device, model_type, train: bool):
+def run_epoch(model, loader, criterion, optimizer, device, model_type, train: bool, desc: str = ""):
     model.train() if train else model.eval()
     total_loss, all_labels, all_probs = 0.0, [], []
 
     ctx = torch.enable_grad() if train else torch.no_grad()
     with ctx:
-        for spec2d, prof1d, labels in loader:
+        pbar = tqdm(loader, desc=desc, leave=False, unit="batch")
+        for spec2d, prof1d, labels in pbar:
             labels = labels.to(device)
             x = prof1d.to(device) if model_type == "1d" else spec2d.to(device)
 
@@ -75,11 +78,12 @@ def run_epoch(model, loader, criterion, optimizer, device, model_type, train: bo
             probs = torch.softmax(logits, dim=1)[:, 1].detach().cpu().numpy()
             all_probs.extend(probs)
             all_labels.extend(labels.cpu().numpy())
+            pbar.set_postfix(loss=f"{loss.item():.4f}")
 
     n = len(all_labels)
     avg_loss = total_loss / n
     auc = roc_auc_score(all_labels, all_probs) if len(set(all_labels)) > 1 else float("nan")
-    acc = np.mean(np.array(all_probs) >= 0.5 == np.array(all_labels))
+    acc = np.mean((np.array(all_probs) >= 0.5) == np.array(all_labels))
     return avg_loss, auc, acc
 
 
@@ -88,7 +92,7 @@ def main():
     torch.manual_seed(args.seed)
     os.makedirs(args.out_dir, exist_ok=True)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
     print(f"Device: {device}")
 
     # Data
@@ -104,10 +108,11 @@ def main():
         train_ds, val_ds, _ = make_splits(dataset, seed=args.seed)
         ref_dataset = dataset
 
+    pin = device.type == "cuda"
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True,
-                              num_workers=args.workers, collate_fn=collate_fn_1d, pin_memory=True)
+                              num_workers=args.workers, collate_fn=collate_fn_1d, pin_memory=pin)
     val_loader   = DataLoader(val_ds,   batch_size=args.batch_size, shuffle=False,
-                              num_workers=args.workers, collate_fn=collate_fn_1d, pin_memory=True)
+                              num_workers=args.workers, collate_fn=collate_fn_1d, pin_memory=pin)
 
     # Model
     r_max = ref_dataset[0][1].shape[0]  # radial profile length
@@ -130,9 +135,11 @@ def main():
 
     for epoch in range(1, args.epochs + 1):
         tr_loss, tr_auc, tr_acc = run_epoch(model, train_loader, criterion, optimizer,
-                                             device, args.model, train=True)
+                                             device, args.model, train=True,
+                                             desc=f"Epoch {epoch:3d}/{args.epochs} train")
         vl_loss, vl_auc, vl_acc = run_epoch(model, val_loader, criterion, optimizer,
-                                             device, args.model, train=False)
+                                             device, args.model, train=False,
+                                             desc=f"Epoch {epoch:3d}/{args.epochs} val  ")
         scheduler.step()
 
         print(f"Epoch {epoch:3d}/{args.epochs}  "
