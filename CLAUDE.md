@@ -61,16 +61,18 @@ python scripts/train.py --model 1d --data data/raw/mydata
 python scripts/train.py --model 2d --train-dir ... --val-dir ... --wandb
 ```
 
-Key flags: `--epochs` (default 30), `--lr` (default 3e-4), `--batch-size` (default 64), `--size` (image resize before FFT, default 224).
+Key flags: `--epochs` (default 30), `--lr` (default 3e-4), `--batch-size` (default 64), `--size` (image resize before FFT, default 224), `--weight-decay` (default 1e-4).
 
 ### Evaluate
 ```bash
-# Single checkpoint on held-out test split
+# Evaluate on a pre-split test directory (use --split all; --split test re-runs make_splits which is wrong for CIFAKE)
 python scripts/eval.py --checkpoint results/best_2d.pt --data data/raw/cifake/test --split all
 
 # Compare both models
 python scripts/eval.py --checkpoint results/best_1d.pt results/best_2d.pt --data data/raw/cifake/test --split all
 ```
+
+`--split test` invokes `make_splits()` internally — only use it when `--data` points to a single unsplit directory. For CIFAKE's pre-split dirs, always use `--split all`.
 
 ---
 
@@ -101,14 +103,17 @@ root/
   fake/   ← label 1 (any non-"real" subdir name is treated as fake)
 ```
 
+For multi-generator datasets (e.g. GenImage with subdirs like `sdv14/`, `dalle/`), pass `fake_dirs=["sdv14", "dalle"]` to `FrequencyDataset` to select specific generators, or omit it to treat all non-"real" subdirs as fake.
+
 ---
 
 ## Key files
-- `src/transforms.py` — math layer: all FFT/spectral logic
+- `src/transforms.py` — math layer: all FFT/spectral logic. `azimuthal_average_fast()` is used in dataset; `azimuthal_average()` is a loop-based reference. `spectral_residual()` and `compute_mean_spectrum()` are EDA-only utilities not in the training path.
 - `src/dataset.py` — `FrequencyDataset`, `make_splits`
 - `src/models.py` — `CNN1D`, `CNN2D`, `build_model` factory
-- `scripts/train.py` — training loop (AdamW + cosine LR)
+- `scripts/train.py` — training loop (AdamW + cosine LR); WandB project name is `"specter"`
 - `scripts/eval.py` — evaluation (AUC, accuracy, EER)
+- `notebooks/` — exploratory analysis and sanity checks
 - `journal.md` — full project history
 
 ## Code Style

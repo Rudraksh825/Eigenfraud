@@ -164,6 +164,44 @@ python scripts/train.py --model 2d --train-dir data/raw/cifake/train --val-dir d
 **Why:** `/init` requested a more useful CLAUDE.md for future Claude Code sessions. The prior version lacked commands and cross-file architectural context.
 **Result / Status:** Done.
 
+### 2026-03-29 — GenImage Dataset Audit
+
+**What:** Inspected `data/raw/GenImage/` to assess fitness for training.
+**Why:** User plans to train 1D/2D CNNs on GenImage for cross-generator robustness.
+**Result / Status:** Dataset is NOT usable for training. Four separate blockers found — see detailed findings below.
+
+**Findings:**
+
+1. **Wrong dataset — this is GenImage++, not GenImage.**
+   The downloaded repo is `Lunahera/genimagepp` (a NeurIPS 2025 submission). This is a *test-only* evaluation benchmark, not the original GenImage training dataset. It has no training splits by design.
+
+2. **Download massively incomplete — 13 of 21 blobs truncated at exactly 4 GiB.**
+   Only 3 image archives are fully intact: `flux` (6k images), `flux_amateur` (6k), `flux_krea_amateur` (6k). The remaining subsets (sd3, flux_realistic, sd3_realistic, flux_multistyle, sdxl_multistyle, sd1.5_multistyle, flux_photo, plus all real-image blobs) are cut off. The 4 GiB cutoff strongly suggests a 32-bit file size limit in the download tool used.
+
+3. **No real images present in working blobs.**
+   All three intact archives contain only `1_fake` images. The `0_real` directories exist but are empty — the ImageNet real images appear to be in the truncated (broken) blobs.
+
+4. **Data is not extracted; directory naming incompatible.**
+   Images are packed inside `.tar.zstd` archives. FrequencyDataset cannot read them as-is. Additionally, the archive uses `0_real`/`1_fake` subdirectory names; FrequencyDataset checks for the exact name `"real"` so `0_real` would be mislabeled as fake.
+
+**What to do:** Download the *original* GenImage dataset (`feifeiobama/GenImage` on HuggingFace, or the official repo at github.com/GenImage-Dataset/GenImage). It has 1.35M images from 8 generators (SD v1.4, SD v1.5, VQDM, Wukong, GLIDE, ADM, Midjourney, DALL-E 2) with proper train/val splits. GenImage++ can then be used as a hard generalization test after training.
+
+---
+
+### 2026-03-29 — CLAUDE.md Minor Improvements
+
+**What:** Updated `CLAUDE.md` via `/init` — added `--weight-decay` to key flags, documented `fake_dirs` param for multi-generator datasets (e.g. GenImage), noted `spectral_residual`/`compute_mean_spectrum` EDA helpers in transforms.py, added `notebooks/` to key files, noted WandB project name is `"specter"`.
+**Why:** Code inspection revealed these details were accurate but missing from the CLAUDE.md.
+**Result / Status:** Done.
+
+---
+
+### 2026-03-30 — CLAUDE.md Minor Improvements
+
+**What:** Updated `CLAUDE.md` via `/init` — clarified `--split all` vs `--split test` distinction for eval.py (wrong to use `test` on CIFAKE's pre-split dirs), noted `azimuthal_average_fast` is the production path and `azimuthal_average` is reference-only, clarified `spectral_residual`/`compute_mean_spectrum` are EDA-only.
+**Why:** Code inspection revealed these nuances were missing and could cause subtle mistakes (e.g., accidentally re-splitting a pre-split test set).
+**Result / Status:** Done.
+
 ---
 
 ## Open Questions / Future Work
