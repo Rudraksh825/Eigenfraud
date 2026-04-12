@@ -15,6 +15,7 @@ For multi-generator GenImage cross-eval, instantiate separate datasets per
 generator directory and concatenate / evaluate independently.
 """
 
+import csv
 import os
 from pathlib import Path
 from typing import Callable, Optional, Tuple
@@ -75,7 +76,7 @@ class FrequencyDataset(Dataset):
         subdirs = [d for d in root.iterdir() if d.is_dir()]
 
         for subdir in subdirs:
-            if subdir.name.lower() == "real":
+            if subdir.name.lower() in ("real", "nature"):
                 label = 0
             elif fake_dirs is not None and subdir.name not in fake_dirs:
                 continue
@@ -92,20 +93,116 @@ class FrequencyDataset(Dataset):
         return len(self.samples)
 
     def __getitem__(self, idx: int):
-        path, label = self.samples[idx]
+        for attempt in range(len(self.samples)):
+            path, label = self.samples[(idx + attempt) % len(self.samples)]
+            try:
+                img = Image.open(path)
+                img.verify()          # catch truncated/corrupt files
+                img = Image.open(path)  # re-open; verify() exhausts the file handle
+            except Exception:
+                continue              # skip corrupt image silently
 
-        img = Image.open(path)
-        if self.transform is not None:
-            img = self.transform(img)
+            if self.transform is not None:
+                img = self.transform(img)
 
+            gray = to_grayscale_array(img, size=self.size)
+            spectrum_2d = log_power_spectrum_2d(gray)          # (H, W)
+            profile_1d = azimuthal_average_fast(spectrum_2d)   # (r_max,)
+
+            # 2D spectrum: add channel dim for Conv2d
+            spectrum_2d_t = torch.from_numpy(spectrum_2d).unsqueeze(0)  # (1, H, W)
+            profile_1d_t = torch.from_numpy(profile_1d)                 # (r_max,)
+
+            return spectrum_2d_t, profile_1d_t, label
+
+        raise RuntimeError(f"No valid images found starting at index {idx}")
+
+    def label_counts(self) -> dict:
+        labels = [s[1] for s in self.samples]
+        return {"real": labels.count(0), "fake": labels.count(1)}
+
+
+class CachedFrequencyDataset(Dataset):
+    """
+    Fast drop-in for FrequencyDataset that reads pre-computed .npz files
+    written by scripts/precompute.py instead of running FFT on-the-fly.
+
+    Args:
+        manifest: Path to manifest.csv produced by precompute.py
+    """
+
+    def __init__(self, manifest: str):
+        self.samples: list[Tuple[str, int, str]] = []  # (path, label, cache_file)
+        with open(manifest) as f:
+            for row in csv.DictReader(f):
+                if row["cache_file"]:
+                    self.samples.append((row["path"], int(row["label"]), row["cache_file"]))
+        if not self.samples:
+            raise ValueError(f"No cached samples found in {manifest}")
+
+    def __len__(self) -> int:
+        return len(self.samples)
+
+    def __getitem__(self, idx: int):
+        _, label, cache_file = self.samples[idx]
+        data = np.load(cache_file)
+        spectrum_2d_t = torch.from_numpy(data["s2d"].astype(np.float32))  # (1,H,W)
+        profile_1d_t  = torch.from_numpy(data["p1d"])                     # (r_max,)
+        return spectrum_2d_t, profile_1d_t, label
+
+    def label_counts(self) -> dict:
+        labels = [s[1] for s in self.samples]
+        return {"real": labels.count(0), "fake": labels.count(1)}
+
+
+class ParquetFrequencyDataset(Dataset):
+    """
+    Loads images from HuggingFace-style parquet files (e.g. defactify_dataset/data/).
+
+    Expects parquet files with columns:
+        Image    — dict with 'bytes' key (HF Image feature)
+        Label_A  — int, 0=real / 1=fake  (binary veracity label)
+
+    Args:
+        parquet_dir:  Directory containing *.parquet files for one split
+                      (e.g. defactify_dataset/data/ filtered to train-*.parquet).
+        split:        "train", "validation", or "test" — used to glob the right files.
+        size:         Resize target before FFT (default 224).
+    """
+
+    def __init__(self, parquet_dir: str, split: str = "train", size: int = 224):
+        import datasets as hf_datasets
+        self.size = size
+        parquet_dir = Path(parquet_dir)
+        files = sorted(parquet_dir.glob(f"{split}-*.parquet"))
+        if not files:
+            raise ValueError(f"No parquet files matching '{split}-*.parquet' in {parquet_dir}")
+        ds = hf_datasets.load_dataset(
+            "parquet",
+            data_files={"data": [str(f) for f in files]},
+            split="data",
+        )
+        # Keep only Image and Label_A; convert to list of (pil_image, label)
+        self.samples: list[Tuple] = []
+        for row in ds:
+            img_field = row["Image"]
+            if isinstance(img_field, dict) and "bytes" in img_field:
+                import io
+                img = Image.open(io.BytesIO(img_field["bytes"]))
+            else:
+                img = img_field  # already a PIL image
+            self.samples.append((img, int(row["Label_A"])))
+
+    def __len__(self) -> int:
+        return len(self.samples)
+
+    def __getitem__(self, idx: int):
+        img, label = self.samples[idx]
         gray = to_grayscale_array(img, size=self.size)
-        spectrum_2d = log_power_spectrum_2d(gray)          # (H, W)
-        profile_1d = azimuthal_average_fast(spectrum_2d)   # (r_max,)
-
-        # 2D spectrum: add channel dim for Conv2d
-        spectrum_2d_t = torch.from_numpy(spectrum_2d).unsqueeze(0)  # (1, H, W)
-        profile_1d_t = torch.from_numpy(profile_1d)                 # (r_max,)
-
+        spectrum_2d = log_power_spectrum_2d(gray)
+        profile_1d  = azimuthal_average_fast(spectrum_2d)
+        spectrum_2d_t = torch.from_numpy(spectrum_2d).unsqueeze(0)
+        profile_1d_t  = torch.from_numpy(profile_1d)
         return spectrum_2d_t, profile_1d_t, label
 
     def label_counts(self) -> dict:

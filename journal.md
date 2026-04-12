@@ -4,6 +4,38 @@ This journal logs every decision, implementation, result, discussion, and conclu
 
 ---
 
+### 2026-04-12 — Checkpoint reorganization + CIFAKE training
+
+**What:** Moved defactify checkpoints from `results/best_1d.pt` / `results/best_2d.pt` into `results/defactify/` subdir. Created `results/cifake/` subdir. Launched 1D and 2D training runs on CIFAKE (50k real / 50k fake, balanced, 30 epochs) with PIDs 11232/11233. CIFAKE downloaded fresh via kagglehub (symlink `/data/raw/cifake` had pointed to stale `/root/.cache` path from prior environment).
+**Why:** Default `--out-dir results` would have overwritten defactify checkpoints when CIFAKE training completed. Subdirectory-per-dataset pattern (consistent with existing `results/genimage/`) keeps runs isolated and comparable.
+**Result / Status:** In progress — logs at `/tmp/cifake_1d.log` and `/tmp/cifake_2d.log`. Defactify checkpoints safely archived: 1D val_auc=0.8439 (epoch 29), 2D val_auc=0.9049 (epoch 11).
+
+---
+
+### 2026-04-12 — CLAUDE.md improvements
+
+**What:** Updated CLAUDE.md to document previously undocumented features: `scripts/precompute.py` (cache workflow), multi-GPU `torchrun` training, `CachedFrequencyDataset`/`ParquetFrequencyDataset`, `--cache`/`--parquet-dir`/`--class-weight`/`--seed` flags, and corrected the GenImage++ fix location (tuple at `dataset.py:79`, not `LABEL_MAP`).
+**Why:** `/init` review revealed these omissions; future Claude instances would not know about the precompute path or DDP support.
+**Result / Status:** Complete.
+
+---
+
+### 2026-04-11 — defactify_dataset parquet support
+
+**What:** Added `ParquetFrequencyDataset` to `src/dataset.py` and `--parquet-dir` flag to `scripts/train.py` to support the defactify dataset (HuggingFace parquet format). Added `datasets` and `pyarrow` to `requirements.txt`.
+**Why:** defactify_dataset stores images embedded in parquet files (HF Image feature with `bytes` key) rather than as files in `real/`/`fake/` subdirs. Uses `Label_A` (0=real, 1=fake) matching project convention. Pre-defined train/validation splits are used directly.
+**Result / Status:** In progress — not yet trained.
+
+---
+
+### 2026-04-11 — Single-image inference notebook
+
+**What:** Created `notebooks/infer_images.ipynb` to run `REAL.png` and `FAKE.png` through both checkpoints interactively.
+**Why:** `eval.py` requires a labeled directory and only produces aggregate metrics — no per-image probabilities. Notebook gives visual output and per-image P(fake) scores.
+**Result / Status:** Notebook has 4 sections: (1) display raw images, (2) show 2D log-power spectra + 1D radial profiles overlaid, (3) load both checkpoints and print an inference table with P(real)/P(fake)/pred/correct columns, (4) bar chart of P(fake) per image for 1D vs 2D CNN.
+
+---
+
 ## Project Overview
 
 **Eigenfraud** is an AI-generated image detector that works entirely in the frequency domain. Instead of looking at pixel-space features, it converts images to their 2D log-power spectra (via FFT) and trains CNNs on that representation. The hypothesis is that generative models leave characteristic spectral fingerprints — periodic artifacts, unusual frequency distributions — that are detectable even when pixel-space content looks convincing.
@@ -212,3 +244,115 @@ python scripts/train.py --model 2d --train-dir data/raw/cifake/train --val-dir d
 - FaceForensics++ integration: frame extraction from video needed before FFT pipeline
 - Consider: normalization of spectra per-image (subtract mean, divide by std) before feeding to CNN
 - Consider: data augmentation in frequency domain (e.g., random rotation of spectrum)
+
+---
+
+### 2026-04-02 — Comprehensive Progress Summary Generated
+
+**What:** Created `specter_progress_summary.md` — a full reference document covering project structure, data pipeline (exact preprocessing steps, azimuthal average math, bin sizes), model architectures (exact layer counts, actual param counts), training setup, results from checkpoints, active plan for GenImage, and all known TODOs.
+**Why:** User requested a handoff document detailed enough for a new Claude instance to immediately help write a paper or debug code.
+**Result / Status:** Done. Key numbers surfaced: CNN1D actual param count is 180,002 (not ~500k as noted in journal); CNN2D is 4,078,050 (not ~2M). Val AUC: 1D = 0.9449 (epoch 29), 2D = 0.9650 (epoch 12). No test-set eval has been run. No cross-generator eval. No adversarial attacks implemented.
+
+---
+
+### 2026-04-10 — Wave 2 extraction restarted sequentially (PID 62093)
+
+**What:** Killed parallel 7z extraction (PIDs 12818/12819/12820) after it stalled — only ~200 files added across 2 hours despite 93% CPU. Renamed partial dirs to `_partial3`. Restarted as sequential: sdv4 → sdv5 → wukong, one at a time, no `-mmt` flag. Log at `/tmp/genimage_wave2.log`.
+**Why:** 3 parallel processes caused severe I/O contention on the Modal volume — CPU-bound decompression couldn't flush to disk. Sequential removes contention.
+**Result / Status:** In progress. sdv4 extracting first.
+
+---
+
+### 2026-04-10 — Wave 2 GenImage extraction launched
+
+**What:** Deleted leftover Wave 1 archives (ADM, BigGAN, VQDM, glide — ~127G) that were never cleaned up from prior run. Installed `p7zip-full` (7z wasn't on PATH). Launched Wave 2 extraction (sdv4, sdv5, wukong) in parallel background (PID 5630); logs at `/tmp/genimage_logs/{sdv4,sdv5,wukong}.log`. The unified `data/raw/genimage/` dir with symlinks was already created by the earlier (partially failed) script run — symlinks will resolve correctly once extraction completes.
+**Why:** Wave 1 (ADM, BigGAN, VQDM, glide) was already extracted from prior session. Wave 2 hadn't been done. Midjourney excluded (212G, too large). p7zip-full needed because `unzip` doesn't handle split ZIPs.
+**Result / Status:** In progress. After completion: verify with dataset sanity check, then train 2D and 1D models on GenImage with `--out-dir results/genimage`.
+
+---
+
+### 2026-04-10 — CLAUDE.md improvements
+
+**What:** Updated `CLAUDE.md` with three additions: (1) documented `--out-dir` and `--workers` flags for `train.py`; (2) clarified that `FrequencyDataset` treats both `"real"` and `"nature"` as label 0 (the prior docs only mentioned `"real"`); (3) added a GenImage++ naming caveat (`0_real`/`1_fake` dirs not currently handled) and a dataset sanity-check one-liner.
+**Why:** The `/init` slash command requested a review of CLAUDE.md. These were gaps between the docs and the actual code.
+**Result / Status:** Done.
+
+---
+
+### 2026-04-02 — GenImage Extraction and Training Setup
+
+**What:** Started extraction of 8 GenImage generator archives (ADM, BigGAN, VQDM, glide, sdv4, sdv5, wukong, Midjourney) and prepared unified training directory. Two changes made:
+1. Patched `src/dataset.py`: added `"nature"` to the real-label check (GenImage uses `ai/` for fake and `nature/` for real, not `fake/`/`real/`).
+2. Wrote `scripts/setup_genimage.sh`: extracts each generator archive via `7z x` (installed `p7zip-full`; `unzip` does not support multi-part ZIPs), deletes archive parts after extraction to reclaim space, then creates `data/raw/genimage/train/` and `data/raw/genimage/val/` with symlinks (ADM's `nature/` as shared `real/`; each generator's `ai/` as its own fake subdir).
+**Why:** CIFAKE training done; next goal is GenImage cross-generator training. `unzip` failed on split ZIPs (`zipfile claims to be last disk of a multi-part archive`). Space strategy: extract-then-delete-archives keeps free space roughly constant (~382G free throughout). Real images: using only ADM's `nature/` to avoid 8× duplication (same ImageNet pool across all generators). This creates 1:8 real:fake imbalance — acceptable for now; can add class weights later.
+**Result / Status:** Extraction running in background (PID 11485, log at `/tmp/genimage_setup.log`). ADM extracting first (37G, ~331k files). Training will start after all 8 generators are extracted.
+
+---
+
+### 2026-04-10 — GenImage real images missing; Wave 2 extraction restarted
+
+**What:** Audited data state after VM restart. Found: (1) Wave 1 generators (ADM, BigGAN, VQDM, glide) extracted only `train/ai/` — archives deleted, cannot recover `val/` or `nature/`; (2) Wave 2 (sdv4, sdv5, wukong) archives still present, extraction never completed; (3) GenImage HuggingFace archives contain ONLY fake images per generator — real/nature images are a separate download; (4) No Kaggle/HF credentials present for re-downloading.
+**Why:** Previous extraction (PID 62093) died when VM restarted. Inspecting the sdv4 archive confirmed the structural issue: each generator zip only has `{archive}/train/ai/`, not `train/nature/` or `val/`.
+**Result / Status:** Wave 2 extraction restarted sequentially (PID 7279), log at `/tmp/genimage_wave2.log`. **Blocker resolved:** user logged into HuggingFace. Downloading imagenet-1k val (50k images) as real/nature images (PID 10040, log `/tmp/imagenet_download.log`).
+
+---
+
+### 2026-04-11 — ImageNet real images download + GenImage merged setup
+
+**What:** Three changes to unblock GenImage training:
+1. Downloading ImageNet-1k validation split (50k images, ~6.7GB) to `data/raw/imagenet_nature/val/` as the real/nature class — the GenImage HuggingFace archives only contain fake images, so ImageNet must be sourced separately.
+2. Wrote `scripts/setup_genimage_merged.sh` to create `data/raw/genimage_all/` with symlinks: `nature/ → imagenet_nature/val/`, plus each generator's `train/ai/`.
+3. Added `--class-weight` flag to `scripts/train.py` (computes loss weights as n/(2×count) per class) to handle the ~1:7 real:fake imbalance in the merged dataset.
+**Why:** GenImage fake archives on HuggingFace are fake-images-only (no nature/ subdirectory). No dedicated val split exists for fake images, so training uses `--data` + `make_splits()`. Class imbalance (~50k real vs 300k–1M fake) requires weighted loss.
+**Result / Status:** Complete. ImageNet download finished (50,000 images). `bash scripts/setup_genimage_merged.sh` run successfully: 50k real + 370k fake (ADM/BigGAN/VQDM/glide + sdv4-partial). Training launched: `python scripts/train.py --model 2d --data data/raw/genimage_all --epochs 30 --out-dir results/genimage --class-weight --wandb` (PID 25084, log `/tmp/train_2d.log`, running on CUDA). Wave 2 (sdv5/wukong) still extracting in background — will retrain or fine-tune once complete.
+
+
+---
+
+### 2026-04-11 — GenImage training path confirmed
+
+**What:** Audited actual data state before starting training. `genimage/train/real` symlink is broken (points to non-existent `ADM/train/nature/`). All `genimage/val/` symlinks are broken (only `train/` was extracted from each archive, no `val/ai/` exists). Real images: 27,784 at `imagenet_nature/val/`. Pre-split `--train-dir`/`--val-dir` mode is not viable.
+**Why:** Confirming what's actually present vs what the old symlink structure assumed.
+**Result / Status:** Confirmed plan: (1) `bash scripts/setup_genimage_merged.sh` to build `genimage_all/` with working `nature/` symlink + all fake generator symlinks, (2) train with `--data data/raw/genimage_all --epochs 30 --out-dir results/genimage --class-weight --wandb`. No code changes needed.
+
+---
+
+### 2026-04-11 — Machine killed; handoff state for H100 node
+
+**What:** Current machine being killed. Summary of state for the next machine:
+
+- **ImageNet val**: ✅ Complete — 50,000 images at `data/raw/imagenet_nature/val/`
+- **Wave 1 generators**: ✅ Fully extracted — ADM, BigGAN, VQDM, glide all at `data/raw/<gen>/.../train/ai/`
+- **sdv4**: ⚠️ Partially extracted — 111,542 / ~135,000 images at `data/raw/stable_diffusion_v_1_4/imagenet_ai_0419_sdv4/train/ai/`. Stalled at 82% due to "No space left on device" errors (likely inode exhaustion on the volume). The `.zip` file is still present at `data/raw/stable_diffusion_v_1_4/imagenet_ai_0419_sdv4.zip` (2.86 GB).
+- **sdv5, wukong**: ❌ Not started — zips present at `data/raw/stable_diffusion_v_1_5/` and `data/raw/wukong/`
+- **genimage_all/**: Symlinks set up for nature + ADM + BigGAN + VQDM + glide + sdv4 (partial)
+- **Training**: Not running. Was killed before H100 migration.
+- **Code**: DDP + precompute pipeline complete (`scripts/precompute.py`, `scripts/train.py`, `src/dataset.py:CachedFrequencyDataset`)
+
+**On the new H100 machine, follow `H100_TRAINING.md` in order:**
+1. `bash scripts/setup_genimage_merged.sh` — refresh symlinks
+2. Run `nohup bash /tmp/extract_wave2.sh > /tmp/genimage_wave2.log 2>&1 &` — skips already-extracted, continues sdv4 + sdv5 + wukong
+3. `python scripts/precompute.py --data data/raw/genimage_all --cache-dir data/cache/genimage_all --workers 16`
+4. `torchrun --nproc_per_node=8 scripts/train.py --model 2d --cache data/cache/genimage_all/manifest.csv --epochs 30 --out-dir results/genimage --class-weight`
+
+**Why:** Volume appears to have hit inode limit (df shows 382G free but writes failing). New machine/volume should not have this issue.
+**Result / Status:** Machine killed. Resuming on H100 node.
+
+---
+
+### 2026-04-11 — DDP + pre-computed spectra for 8× H100
+
+**What:** Two changes to support full 8-GPU utilization:
+1. `scripts/precompute.py` — scans a FrequencyDataset dir, computes spectrum_2d (float16) + profile_1d (float32) per image, saves `.npz` files + `manifest.csv`. Resumable, parallel, skips corrupt images. Usage: `python scripts/precompute.py --data data/raw/genimage_all --cache-dir data/cache/genimage_all --workers 16`
+2. `CachedFrequencyDataset` added to `src/dataset.py` — reads from manifest.csv, zero FFT overhead at train time.
+3. `scripts/train.py` upgraded to DDP: detects `RANK` env var (set by `torchrun`), wraps model in `DistributedDataParallel`, uses `DistributedSampler`, aggregates AUC/loss across ranks, saves checkpoints on rank 0 only.
+**Why:** On-the-fly FFT on 420k images is ~5 hrs/epoch bottleneck. With 8 H100s the GPU would be idle waiting for CPU. Pre-compute pays ~1-2 hrs once, then each epoch takes minutes.
+**Result / Status:** Code complete. Launch sequence: (1) run precompute.py on the data node, (2) `torchrun --nproc_per_node=8 scripts/train.py --model 2d --cache data/cache/genimage_all/manifest.csv --epochs 30 --out-dir results/genimage --class-weight --wandb`
+
+---
+
+### 2026-04-11 — Corrupt image crash + skip-on-error fix
+
+**What:** Training (PID 26141) crashed mid-epoch-1 with `PIL.UnidentifiedImageError` on `BigGAN/116_biggan_00094.png`. Fixed `src/dataset.py` `__getitem__` to wrap image open + `img.verify()` in a try/except loop that advances to the next sample on any PIL error. Killed crashed processes and relaunched (PID 48222).
+**Why:** GenImage archives contain at least one corrupt/truncated PNG. Without the fix any corrupt file kills the entire training run.
+**Result / Status:** Fix applied; training restarted cleanly on CUDA.

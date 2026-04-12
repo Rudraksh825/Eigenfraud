@@ -9,3 +9,57 @@ Training 2D:
 python scripts/train.py --model 2d --train-dir data/processed/birdy654/cifake-real-and-ai-generated-synthetic-images/versions/3/train --val-dir data/processed/birdy654/cifake-real-and-ai-generated-synthetic-images/versions/3/test   
 
 python scripts/train.py --model 2d --train-dir data/raw/cifake/train --val-dir data/raw/cifake/test  
+
+
+
+GenImage:
+
+1D:
+
+python scripts/train.py --model 1d --train-dir data/raw/genimage/train --val-dir data/raw/genimage/val --epochs 30 --out-dir results/genimage --wandb
+
+
+
+
+
+Setting up GenImage:
+
+rm -rf data/raw/ADM/imagenet_ai_0508_adm nohup bash scripts/setup_genimage_parallel.sh > /tmp/genimage_parallel.log 2>&1 & echo $!   # save this PID  18845  21604
+
+Monitor progress per-generator:
+  tail -f /tmp/genimage_logs/ADM.log      # wave 1
+  tail -f /tmp/genimage_logs/sdv4.log     # wave 2
+  tail /tmp/genimage_parallel.log         # overall status
+
+Once done, train:
+  python scripts/train.py --model 2d --train-dir data/raw/genimage/train --val-dir data/raw/genimage/val --epochs 30 --out-dir results/genimage --wandb
+
+
+# ── 8× H100 PLAN (2026-04-11) ───────────────────────────────────────────────
+# Step 1 — Pre-compute spectra (run once, ~1-2 hrs on a fast CPU node):
+#   python scripts/precompute.py --data data/raw/genimage_all --cache-dir data/cache/genimage_all --workers 16
+#
+# Step 2 — Train with DDP across all 8 GPUs:
+#   torchrun --nproc_per_node=8 scripts/train.py --model 2d --cache data/cache/genimage_all/manifest.csv --epochs 30 --out-dir results/genimage --class-weight --wandb
+#   torchrun --nproc_per_node=8 scripts/train.py --model 1d --cache data/cache/genimage_all/manifest.csv --epochs 30 --out-dir results/genimage --class-weight --wandb
+#
+# Single-GPU fallback (no cache):
+#   python scripts/train.py --model 2d --data data/raw/genimage_all --epochs 30 --out-dir results/genimage --class-weight
+#
+# ── REVISED PLAN (2026-04-11) ────────────────────────────────────────────────
+# GenImage archives are fake-only on HuggingFace. Real images sourced from imagenet-1k.
+# Using --data + make_splits() + --class-weight for imbalanced dataset.
+
+# Downloads in progress:
+#   imagenet-1k val → data/raw/imagenet_nature/val/   (PID 10040, log /tmp/imagenet_download.log)
+#   Wave 2 extraction → sdv4/sdv5/wukong              (PID 7279, log /tmp/genimage_wave2.log)
+
+# Once both complete:
+bash scripts/setup_genimage_merged.sh
+
+# Sanity check:
+python -c "from src.dataset import FrequencyDataset; d = FrequencyDataset('data/raw/genimage_all'); print(d.label_counts())"
+
+# Train (both models):
+python scripts/train.py --model 2d --data data/raw/genimage_all --epochs 30 --out-dir results/genimage --class-weight --wandb
+python scripts/train.py --model 1d --data data/raw/genimage_all --epochs 30 --out-dir results/genimage --class-weight --wandb

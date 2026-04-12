@@ -6,8 +6,11 @@ scipy
 matplotlib
 scikit-learn
 jupyter
+ipykernel
 tqdm
 Pillow
 h5py
 wandb
 kaggle
+datasets
+pyarrow

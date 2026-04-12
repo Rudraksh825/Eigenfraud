@@ -1,0 +1,123 @@
+Here is Claude's plan:                                                                                                                                                                                            
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Plan: Train on GenImage + Generalization Eval                                                                                                                                                                     
+                                                                                                                                                                                                                   
+ Context                                                                                                                                                                                                           
+                                                                                                                                                                                                                   
+ We have trained on CIFAKE (SD v1.4 vs real CIFAR-10) with decent results. Goal: expand to the original GenImage dataset (8 generators, ImageNet-scale) to build a more robust detector, then test generalization
+ using GenImage++ as a hard holdout benchmark.
+
+ ---
+ Step 1: Extract Original GenImage Archives
+
+ The original GenImage data is stored as split zip archives per generator in data/raw/:
+ data/raw/ADM/imagenet_adm.zip  + .z01 .z02 ...
+ data/raw/BigGAN/imagenet_biggan.zip + ...
+ data/raw/VQDM/...
+ data/raw/glide/...
+ data/raw/Midjourney/...
+ data/raw/stable_diffusion_v_1_4/...
+ data/raw/stable_diffusion_v_1_5/...
+ data/raw/wukong/...
+
+ Extract each with:
+ cd data/raw/ADM && zip -FF imagenet_adm.zip --out full.zip && unzip full.zip
+ # OR: 7z x imagenet_adm.zip
+
+ After extraction: verify the subdirectory naming. GenImage likely uses either:
+ - real/ + {generator}/ — already compatible with FrequencyDataset
+ - 0_real/ + 1_fake/ — requires Step 2 patch
+
+ ---
+ Step 2: Patch FrequencyDataset for 0_real naming (if needed)
+
+ File: src/dataset.py
+
+ If GenImage uses 0_real as the real class name, update the label detection (currently only matches "real"):
+
+ # Current (line ~78):
+ if subdir.name.lower() == "real":
+     label = 0
+
+ # Change to:
+ if subdir.name.lower() in ("real", "0_real"):
+     label = 0
+
+ This is a one-line addition, backward compatible with CIFAKE.
+
+ ---
+ Step 3: Organize into a unified training directory
+
+ Since all generators should be mixed as "fake", create a flat layout the dataset can read:
+
+ data/raw/genimage/train/
+     real/          ← merged from all generators' real splits (or symlink one)
+     ADM/           ← fake label
+     BigGAN/
+     VQDM/
+     glide/
+     Midjourney/
+     stable_diffusion_v_1_4/
+     stable_diffusion_v_1_5/
+     wukong/
+ data/raw/genimage/val/
+     real/
+     ADM/
+     ...
+
+ Note: GenImage has one set of real ImageNet images shared across generators. Only one copy of real/ is needed. Use symlinks or copy once.
+
+ No code changes needed — FrequencyDataset already treats every non-real subdir as label 1.
+
+ ---
+ Step 4: Train on GenImage
+
+ # 1D model
+ python scripts/train.py --model 1d \
+   --train-dir data/raw/genimage/train \
+   --val-dir data/raw/genimage/val \
+   --epochs 30 --wandb
+
+ # 2D model
+ python scripts/train.py --model 2d \
+   --train-dir data/raw/genimage/train \
+   --val-dir data/raw/genimage/val \
+   --epochs 30 --wandb
+
+ Checkpoints → results/best_1d.pt and results/best_2d.pt (overwrite CIFAKE ones, or use --out-dir results/genimage/).
+
+ ---
+ Step 5: Cross-dataset Generalization Eval
+
+ GenImage model → CIFAKE test set
+
+ python scripts/eval.py \
+   --checkpoint results/genimage/best_1d.pt results/genimage/best_2d.pt \
+   --data data/raw/cifake/test --split all
+
+ CIFAKE model → GenImage val set
+
+ python scripts/eval.py \
+   --checkpoint results/cifake/best_1d.pt results/cifake/best_2d.pt \
+   --data data/raw/genimage/val --split all
+
+ ---
+ Step 6: GenImage++ Holdout Eval (after training)
+
+ GenImage++ is stored as Git LFS blobs (data/raw/GenImage/blobs/). It uses {generator}/val/1_fake/ naming. Extract when ready:
+
+ cd data/raw/GenImage && git lfs pull
+
+ Then eval GenImage-trained models on GenImage++ per generator. The Step 2 patch to dataset.py handles 0_real/1_fake naming.
+
+ ---
+ Critical Files to Modify
+
+ - src/dataset.py — one-line patch for 0_real support (conditional on naming)
+ - No changes needed to train.py or eval.py
+
+ Verification
+
+ 1. After extraction, python -c "from src.dataset import FrequencyDataset; d = FrequencyDataset('data/raw/genimage/train'); print(d.label_counts())" should show large balanced real/fake counts
+ 2. Training should show val AUC improving over 30 epochs
+ 3. Cross-dataset eval should give comparable AUC to within-dataset eval (the interesting science question)
