@@ -4,6 +4,38 @@ This journal logs every decision, implementation, result, discussion, and conclu
 
 ---
 
+### 2026-04-13 — Wrote explainer.md
+
+**What:** Created `explainer.md` — a comprehensive document covering the full pipeline (grayscale conversion, FFT, log-power spectrum, azimuthal averaging), the math behind each CNN layer type (conv, BN, ReLU, pooling, cross-entropy), both model architectures with parameter counts, what the models learn, four interpretability/visualisation methods (spectral residual, Grad-CAM, first-layer filters, feature PCA), the AdamW + cosine annealing optimiser math, and a full hyperparameter reference.
+**Why:** User requested a thorough explanation covering the intuition, math, interpretability, and hyperparameters in one place.
+**Result / Status:** Done — file at `explainer.md`.
+
+---
+
+### 2026-04-13 — CIFAKE retrain results
+
+**What:** Retrained 1D and 2D models on CIFAKE from scratch (same default hyperparams: lr=3e-4, batch=64, wd=1e-4, 30 epochs, no class-weight). Previous run had been lost from disk; CIFAKE was re-downloaded before retraining.
+**Why:** User was unhappy with the prior results; wanted a fresh run.
+**Result / Status:** Both models are worse than the previous run. 1D: 0.9399 (epoch 25) vs 0.9405 (epoch 16). 2D: 0.9525 (epoch 13) vs 0.9648 (epoch 13). 2D regression of −0.012 AUC is notable; the identical best epoch suggests the model hit its ceiling earlier. Previous checkpoints should be preferred if they can be recovered.
+
+---
+
+### 2026-04-13 — CLAUDE.md corrections and gap-fills via /init
+
+**What:** Ran `/init` to audit CLAUDE.md against actual source. Fixed: (1) CNN1D param count was wrong (~500k → ~180k, verified by summing conv/BN/linear layers); (2) CNN2D param count was wrong (~2M → ~4M, actual 4,078,050). Added: (3) explicit notebook listing (verifying, ManualInspection, infer_images); (4) note that `make_splits` is duck-typed and works with both `FrequencyDataset` and `CachedFrequencyDataset`.
+**Why:** The param counts in CLAUDE.md contradicted the verified counts in `specter_progress_summary.md` and manual calculation; incorrect counts mislead future instances making architecture decisions.
+**Result / Status:** Done — CLAUDE.md now reflects correct values.
+
+---
+
+### 2026-04-12 — CLAUDE.md improvements via /init
+
+**What:** Ran `/init` to review and improve CLAUDE.md. Added: (1) GenImage setup scripts section (`setup_genimage.sh`, `setup_genimage_parallel.sh`, `setup_genimage_merged.sh`) with note that merged script is re-runnable; (2) reference to `H100_TRAINING.md` for multi-GPU runbook; (3) log monitoring tip for reading tqdm-polluted background training logs.
+**Why:** These scripts existed in the repo but were undocumented in CLAUDE.md; the log-reading pattern is non-obvious.
+**Result / Status:** Complete.
+
+---
+
 ### 2026-04-12 — Checkpoint reorganization + CIFAKE training
 
 **What:** Moved defactify checkpoints from `results/best_1d.pt` / `results/best_2d.pt` into `results/defactify/` subdir. Created `results/cifake/` subdir. Launched 1D and 2D training runs on CIFAKE (50k real / 50k fake, balanced, 30 epochs) with PIDs 11232/11233. CIFAKE downloaded fresh via kagglehub (symlink `/data/raw/cifake` had pointed to stale `/root/.cache` path from prior environment).
@@ -356,3 +388,35 @@ python scripts/train.py --model 2d --train-dir data/raw/cifake/train --val-dir d
 **What:** Training (PID 26141) crashed mid-epoch-1 with `PIL.UnidentifiedImageError` on `BigGAN/116_biggan_00094.png`. Fixed `src/dataset.py` `__getitem__` to wrap image open + `img.verify()` in a try/except loop that advances to the next sample on any PIL error. Killed crashed processes and relaunched (PID 48222).
 **Why:** GenImage archives contain at least one corrupt/truncated PNG. Without the fix any corrupt file kills the entire training run.
 **Result / Status:** Fix applied; training restarted cleanly on CUDA.
+
+---
+
+### 2026-04-13 — CVPR paper draft written
+
+**What:** Filled in the CVPR 2026 author-kit template in `Paper_template/author-kit-CVPR2026-v1-latex-/`. Wrote abstract (`sec/0_abstract.tex`), introduction (`sec/1_intro.tex`), related work (`sec/2_formatting.tex`), method (`sec/3_finalcopy.tex`), experiments (`sec/4_experiments.tex`), and discussion/conclusion (`sec/5_conclusion.tex`). Updated `main.tex` title to "Eigenfraud: Frequency-Only Detection of AI-Generated Images via Radial and 2D Spectral CNNs" and added the two new section includes. Added `booktabs` and `enumitem` to `preamble.tex` for the results table and intro contribution list. Reports completed CIFAKE (2D 0.9525 / 1D 0.9399) and Defactify (2D 0.9049 / 1D 0.8439) runs with an explicit table, and describes three planned experiments (E1 GenImage LOGO, E2 JPEG robustness, E3 Fourier-space PGD) with expected outcomes.
+**Why:** Abstract submission needed. User asked for a full pass over the template using existing results, with unfinished work framed as plan + expected outcomes. Uses `\cite{}` placeholders throughout for the user to fill in later.
+**Result / Status:** Draft complete, not yet compiled. No bibliography keys are yet populated in `main.bib` — all citations will currently show as `?` until the user adds bib entries.
+
+---
+
+### 2026-04-13 — GenImage precompute blocked by inode cap; plan: on-the-fly training
+
+**What:** Attempted to precompute spectra for `data/raw/genimage_all` (50k real + 304k fake across ADM/BigGAN/VQDM/glide + broken sdv4 symlink on a fresh volume). Run reported 321,062 errors / 354,058 total, only 32,996 `.npz` files written (all ADM). Root cause: the Modal volume at `/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi` has a **500,000 inode hard limit**, and `df -i` shows `IUse%=100%` — we hit the inode ceiling after ~33k cache files, and every subsequent `np.savez_compressed` returned `[Errno 28] No space left on device` despite 382 GB of free *bytes*. Same failure mode as the 2026-04-11 sdv4 partial-extract incident; this is a volume-level limit, not a precompute bug. Manifest/code are fine — `_process_one` succeeds on every tested file when writing to `/tmp`.
+**Why:** Confirmed by running `_process_one` against the real cache dir in isolation: returns `FileNotFoundError`/`ENOSPC` with "No space left on device" on the `.npz` write. `df -h` shows 0% bytes used; `df -i` shows 100% inodes used. Packing spectra into one `.npz` per image is the wrong data layout for this filesystem.
+**Result / Status:** Precompute path abandoned for now. **Decision: train directly on raw images with on-the-fly FFT** via `--data data/raw/genimage_all` (no `.npz` cache). No new inodes, one training process, slower per epoch but acceptable on 1× H100. Sharded cache (~354 files instead of 354k) is a later fallback if on-the-fly proves too slow.
+
+**Next-session runbook (fresh chat pick-up point):**
+1. `python -c "from src.dataset import FrequencyDataset; print(FrequencyDataset('data/raw/genimage_all').label_counts())"` — confirm real/fake counts unchanged (~50k/304k).
+2. `df -i /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi` — confirm inode cap still binding before doing anything cache-related.
+3. Launch training in the background (2D first, 1D second):
+   ```
+   nohup python scripts/train.py --model 2d --data data/raw/genimage_all \
+       --epochs 30 --out-dir results/genimage --class-weight --wandb \
+       > /tmp/genimage_2d.log 2>&1 & echo $!
+   ```
+   Then 1D with `--model 1d` and `/tmp/genimage_1d.log`.
+4. Monitor with: `tr '\r' '\n' < /tmp/genimage_2d.log | grep "^Epoch" | tail`.
+5. Do **not** rerun `scripts/precompute.py` against the Modal volume — it will hit the same inode wall.
+6. If per-epoch time is unacceptable, refactor `precompute.py` to write sharded `.h5`/`.npz` files (target: ~1000 images/shard, ~354 files total) before retrying the cached path.
+
+**Also note:** `data/raw/genimage_all/sdv4` symlink is currently broken (points to `stable_diffusion_v_1_4/...` path that does not exist on this volume); `label_counts` correctly excludes it. sdv5 and wukong archives are still unextracted — Wave 2 from the earlier H100 runbook never finished. Training above uses 4 generators (ADM, BigGAN, VQDM, glide) plus ImageNet nature, not the full 8.

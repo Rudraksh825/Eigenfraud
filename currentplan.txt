@@ -121,3 +121,40 @@ Here is Claude's plan:
  1. After extraction, python -c "from src.dataset import FrequencyDataset; d = FrequencyDataset('data/raw/genimage/train'); print(d.label_counts())" should show large balanced real/fake counts
  2. Training should show val AUC improving over 30 epochs
  3. Cross-dataset eval should give comparable AUC to within-dataset eval (the interesting science question)
+
+---
+2026-04-13 UPDATE — GenImage precompute path blocked by Modal volume inode cap.
+
+State of data:
+- data/raw/genimage_all/ has 50k real (ImageNet val) + 304k fake symlinks across ADM, BigGAN, VQDM, glide
+- sdv4 symlink broken (points to stable_diffusion_v_1_4/... which is not on this volume)
+- sdv5 and wukong archives still unextracted (Wave 2 never finished on this machine)
+- Modal volume /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi is at 500k/500k inodes (100%). 382 GB bytes free but cannot create new files.
+
+Why precompute.py does NOT work here:
+- It writes one .npz per image (354k files) → hits inode cap after ~33k files → rest fail with [Errno 28].
+- Confirmed by running _process_one() in isolation: succeeds on /tmp, fails with ENOSPC on the real cache dir.
+- Do NOT rerun precompute.py until it's refactored to write sharded files (e.g. 1000 images per .npz/.h5).
+
+Decided next step (when picking this up again):
+Train GenImage directly on raw images with on-the-fly FFT. No new inodes created.
+
+  nohup python scripts/train.py --model 2d --data data/raw/genimage_all \
+      --epochs 30 --out-dir results/genimage --class-weight --wandb \
+      > /tmp/genimage_2d.log 2>&1 & echo $!
+
+  nohup python scripts/train.py --model 1d --data data/raw/genimage_all \
+      --epochs 30 --out-dir results/genimage --class-weight --wandb \
+      > /tmp/genimage_1d.log 2>&1 & echo $!
+
+Monitor:
+  tr '\r' '\n' < /tmp/genimage_2d.log | grep "^Epoch" | tail
+
+Before launching:
+1. python -c "from src.dataset import FrequencyDataset; print(FrequencyDataset('data/raw/genimage_all').label_counts())"
+   → confirm ~{'real': 50000, 'fake': 304058}
+2. df -i /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi  → confirm inode status
+3. nvidia-smi -L  → confirm GPU available
+
+Fallback if on-the-fly FFT is too slow per epoch:
+Refactor precompute.py to write sharded .h5 (1k images/shard → 354 shards total, well under inode cap), add a matching CachedShardedFrequencyDataset, then retry the cached path.

@@ -48,12 +48,39 @@ bash setup_data.sh
 bash setup_data.sh --ff-url <server_url>
 ```
 
+### Set up GenImage dataset
+```bash
+# Extract individual generators and create merged symlink directory
+bash scripts/setup_genimage.sh          # sequential, single generator
+bash scripts/setup_genimage_parallel.sh # parallel extraction (faster)
+bash scripts/setup_genimage_merged.sh   # create data/raw/genimage_all/ with symlinks across generators
+```
+`setup_genimage_merged.sh` is re-runnable — safe to call again after new generators are extracted to add symlinks.
+
+See `H100_TRAINING.md` for the full multi-GPU GenImage training runbook (extract → precompute → DDP train).
+
 ### Pre-compute spectra (recommended for large datasets)
 ```bash
 # Compute and cache .npz files (resumable — skips already-cached files)
 python scripts/precompute.py --data data/raw/genimage_all --cache-dir data/cache/genimage_all --workers 16
 ```
 Output: `<cache-dir>/manifest.csv` + per-image `.npz` files (s2d float16, p1d float32). Pass the manifest to `--cache` during training to skip on-the-fly FFT.
+
+**⚠ Inode cap on this Modal volume (2026-04-13).** `/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi` has a hard limit of **500,000 inodes** (`df -i` shows `IUse%=100%`), while ~382 GB of bytes remain free. `precompute.py` writes one `.npz` per image, so running it on GenImage (~354k images) silently fails with `[Errno 28] No space left on device` on every write past the cap — the 2026-04-13 attempt landed only ~33k ADM files before errors, and every diagnostic test against `/tmp` passes fine. **Do not rerun `precompute.py` on this volume without first refactoring it to write sharded files** (e.g. ~1000 images per `.npz`/`.h5`, giving ~354 files instead of 354k). For now, train GenImage directly with `--data data/raw/genimage_all` (on-the-fly FFT) — see GenImage runbook below.
+
+### GenImage training (current path — on-the-fly FFT, no cache)
+```bash
+# 2D (main detector)
+nohup python scripts/train.py --model 2d --data data/raw/genimage_all \
+    --epochs 30 --out-dir results/genimage --class-weight --wandb \
+    > /tmp/genimage_2d.log 2>&1 & echo $!
+
+# 1D (for 1D-vs-2D comparison)
+nohup python scripts/train.py --model 1d --data data/raw/genimage_all \
+    --epochs 30 --out-dir results/genimage --class-weight --wandb \
+    > /tmp/genimage_1d.log 2>&1 & echo $!
+```
+Dataset at time of writing: ~50k real (ImageNet val) + ~304k fake across 4 generators (ADM, BigGAN, VQDM, glide). `sdv4` symlink is currently broken; `sdv5`/`wukong` archives are unextracted (Wave 2 never finished). `--class-weight` handles the ~1:6 real/fake imbalance. Monitor with `tr '\r' '\n' < /tmp/genimage_2d.log | grep "^Epoch" | tail`.
 
 ### Train
 ```bash
@@ -90,6 +117,12 @@ python scripts/eval.py --checkpoint results/best_1d.pt results/best_2d.pt --data
 
 `--split test` invokes `make_splits()` internally — only use it when `--data` points to a single unsplit directory. For CIFAKE's pre-split dirs, always use `--split all`.
 
+### Monitor background training logs
+tqdm uses `\r` which makes raw `cat` unreadable. Filter to epoch summaries:
+```bash
+cat /tmp/train_2d.log | tr '\r' '\n' | grep "^Epoch"
+```
+
 ---
 
 ## Architecture
@@ -113,7 +146,7 @@ PIL image
 - `CachedFrequencyDataset` — reads pre-computed `.npz` files via `manifest.csv` from `precompute.py`; much faster I/O for large datasets
 - `ParquetFrequencyDataset` — HuggingFace-style parquet files (defactify_dataset); reads `Image` bytes + `Label_A` columns
 
-**`make_splits()`** in `dataset.py` does a stratified 80/10/10 train/val/test split. Only used when `--data` or `--cache` is passed (single-dir/cache mode); CIFAKE's own train/test dirs are used directly otherwise.
+**`make_splits()`** in `dataset.py` does a stratified 80/10/10 train/val/test split. Only used when `--data` or `--cache` is passed (single-dir/cache mode); CIFAKE's own train/test dirs are used directly otherwise. Works with both `FrequencyDataset` and `CachedFrequencyDataset` (both have `.samples` with `(path, label, ...)` tuples). Type hint says `FrequencyDataset` but is intentionally duck-typed.
 
 **Checkpoint format** (`.pt` files): `{"epoch", "model_type", "model_state", "val_auc", "args"}`. The `model_type` field drives model construction at eval time.
 
@@ -138,11 +171,11 @@ python -c "from src.dataset import FrequencyDataset; d = FrequencyDataset('data/
 ## Key files
 - `src/transforms.py` — math layer: all FFT/spectral logic. `azimuthal_average_fast()` is used in dataset; `azimuthal_average()` is a loop-based reference. `spectral_residual()` and `compute_mean_spectrum()` are EDA-only utilities not in the training path.
 - `src/dataset.py` — `FrequencyDataset`, `CachedFrequencyDataset`, `ParquetFrequencyDataset`, `make_splits`
-- `src/models.py` — `CNN1D` (~500k params), `CNN2D` (~2M params), `build_model` factory
+- `src/models.py` — `CNN1D` (~180k params), `CNN2D` (~4M params), `build_model` factory
 - `scripts/precompute.py` — pre-compute and cache spectra to `.npz`; produces `manifest.csv` for `--cache` training mode
 - `scripts/train.py` — training loop (AdamW + cosine LR, DDP-capable); WandB project name is `"specter"`
 - `scripts/eval.py` — evaluation (AUC, accuracy, EER)
-- `notebooks/` — exploratory analysis and sanity checks
+- `notebooks/` — `verifying.ipynb` (spectral sanity checks), `ManualInspection.ipynb` (model output inspection), `infer_images.ipynb` (inference on individual images)
 - `journal.md` — full project history
 
 ## Code Style

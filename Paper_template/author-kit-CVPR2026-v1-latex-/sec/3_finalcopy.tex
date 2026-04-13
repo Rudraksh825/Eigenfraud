@@ -1,7 +1,50 @@
-\section{Final copy}
+\section{Method}
+\label{sec:method}
 
-You must include your signed IEEE copyright release form when you submit your finished paper.
-We MUST have this form before your paper can be published in the proceedings.
+Our pipeline is deliberately minimal: a deterministic spectral preprocessing step feeds a lightweight CNN with no pretraining, no augmentation, and no semantic features. Figure~\ref{fig:pipeline} (to be added from \texttt{figures/pipeline\_per\_image.png}) shows the full per-image flow.
 
-Please direct any questions to the production editor in charge of these proceedings at the IEEE Computer Society Press:
-\url{https://www.computer.org/about/contact}.
+\subsection{Spectral preprocessing}
+\label{sec:preproc}
+
+Given an input image $I$ of arbitrary size and colour mode, we first collapse to luminance and resize to a fixed $N \times N$ grid with $N=224$:
+\begin{equation}
+    I_{\text{gray}}(x,y) = 0.299\,R + 0.587\,G + 0.114\,B,
+    \label{eq:gray}
+\end{equation}
+followed by Lanczos resampling to $N \times N$. No per-image normalisation is applied. We then compute the 2D discrete Fourier transform and take the log-power spectrum:
+\begin{align}
+    \hat{I}(u,v) &= \sum_{x=0}^{N-1}\sum_{y=0}^{N-1} I_{\text{gray}}(x,y)\,e^{-2\pi i (ux+vy)/N}, \label{eq:dft}\\
+    S(u,v) &= \log\!\bigl(1 + \lvert \hat{I}(u,v)\rvert^{2}\bigr), \label{eq:logpow}
+\end{align}
+centred via \texttt{fftshift} so that the DC coefficient lies at $(N/2, N/2)$. The $\log(1+\cdot)$ compression follows prior work~\cite{durall2020watch} and is essential: the unlogged power spectrum spans many decades of dynamic range, with the DC bin dominating everything else by six orders of magnitude.
+
+\paragraph{1D radial profile.} Because natural images are approximately statistically isotropic, a rotationally invariant summary of $S$ is already an informative fingerprint~\cite{vanderschaaf1996,durall2020watch}. We collapse $S$ to a 1D profile by azimuthal averaging:
+\begin{equation}
+    A(r) = \frac{1}{|\mathcal{R}_r|}\!\!\sum_{(u,v)\in\mathcal{R}_r}\!\! S(u,v),
+    \quad \mathcal{R}_r = \bigl\{(u,v) : \lfloor\lVert(u,v)\rVert\rfloor = r\bigr\},
+    \label{eq:azavg}
+\end{equation}
+for $r = 0, 1, \ldots, \lfloor N/2 \rfloor - 1$, giving a length-112 feature vector. We implement~(\ref{eq:azavg}) with a vectorised \texttt{bincount} rather than the naive per-radius loop; the two implementations agree to numerical precision.
+
+\subsection{Two matched detectors}
+\label{sec:models}
+
+To isolate the effect of \emph{representation} from the effect of \emph{capacity}, we train two detectors whose only essential difference is what they see.
+
+\paragraph{\textsc{cnn1d} (isotropic-only).} Input: the length-112 radial profile $A(\cdot)$. The architecture is three blocks of \{Conv1D, BatchNorm, ReLU\} pairs separated by $2\times$ max-pooling, a global average pool, and a linear classifier. Channel widths are $1\!\to\!32\!\to\!64\!\to\!128\!\to\!128\!\to\!256$, all kernels of size 3 with padding 1, biases disabled in the conv layers (absorbed into BN affine). Total trainable parameters: $180{,}002$. Receptive-field coverage spans the entire profile by the final block, so the model can in principle detect any isotropic deviation from the $1/f^{\alpha}$ baseline.
+
+\paragraph{\textsc{cnn2d} (full spectrum).} Input: the full log-power spectrum $S$ as a single-channel $(1, 224, 224)$ tensor. The architecture mirrors \textsc{cnn1d} but in 2D: five blocks of \{Conv2D, BatchNorm, ReLU\} pairs with widths $1\!\to\!32\!\to\!64\!\to\!128\!\to\!128\!\to\!256\!\to\!512\!\to\!512$, three $2\times$ max-pools, global average pool, linear classifier. Total trainable parameters: $4{,}078{,}050$. No skip connections, no pretrained weights, no dropout. In contrast to \textsc{cnn1d}, this model retains access to \emph{directional} information --- grid artifacts, axis-aligned biases, anisotropic decoder spectra --- that the azimuthal average has destroyed.
+
+\paragraph{Why these two models?} \textsc{cnn1d} and \textsc{cnn2d} correspond to two different scientific hypotheses about where the diffusion fingerprint lives. If diffusion artifacts are purely isotropic --- a broadband energy excess at some radius, a modified $1/f^{\alpha}$ slope --- then \textsc{cnn1d} suffices and \textsc{cnn2d}'s extra parameters buy nothing. If they are anisotropic --- grid patterns from transposed convolutions~\cite{odena2016deconvolution}, VAE-decoder axis bias, attention-induced directional texture --- then \textsc{cnn2d} should dominate, especially as the generator pool diversifies. The comparison is the experiment, not a baseline ablation.
+
+\subsection{Training}
+\label{sec:training}
+
+Both models are trained with cross-entropy loss, AdamW~\cite{loshchilov2019adamw} (lr $3{\times}10^{-4}$, weight decay $1{\times}10^{-4}$), and a cosine-annealing learning-rate schedule~\cite{loshchilov2017sgdr} with $T_{\max}$ equal to the number of epochs. Default batch size is $64$; default training length is $30$ epochs. No mixed precision, no label smoothing, no gradient clipping, no frequency-domain augmentation. The best checkpoint is selected by validation AUC (not validation loss), because AUC is the operating-point-free figure of merit that matters in detector deployment.
+
+For large-scale training on GenImage we extend the pipeline in two ways. First, we pre-compute spectra to disk as per-image \texttt{.npz} files (\texttt{s2d} in \texttt{float16}, \texttt{p1d} in \texttt{float32}) with a \texttt{manifest.csv} index, using a resumable multi-worker script; this moves the entire FFT budget out of the training loop, since FFT of a $224\times 224$ image is a trivial operation but doing it 400k times per epoch is not. Second, the training script supports distributed data parallel (DDP) via \texttt{torchrun} with rank-aware metric aggregation and rank-0 checkpointing, which enables the 8$\times$H100 runs described in Section~\ref{sec:experiments}.
+
+\subsection{Implementation details}
+\label{sec:impl}
+
+The full codebase is \texttt{PyTorch}-only and consists of three \texttt{src/} modules (\texttt{transforms.py}, \texttt{dataset.py}, \texttt{models.py}) and two scripts (\texttt{train.py}, \texttt{eval.py}), plus a precompute utility. A single \texttt{FrequencyDataset} class computes both representations per item and the training script selects which one to use via a \texttt{--model} flag, guaranteeing that \textsc{cnn1d} and \textsc{cnn2d} see \emph{exactly} the same preprocessing for every image. We support three ingest paths: raw image folders (\texttt{FrequencyDataset}), pre-computed caches (\texttt{CachedFrequencyDataset}), and HuggingFace parquet shards (\texttt{ParquetFrequencyDataset}, used for Defactify).

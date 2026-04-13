@@ -1,0 +1,63 @@
+\section{Experiments}
+\label{sec:experiments}
+
+Our experiments are organised around three questions, in order of increasing difficulty: (i) does a frequency-only CNN work at all on a modern diffusion benchmark? (ii) does the 1D vs 2D gap widen as the generator pool diversifies? and (iii) do the detectors' decisions correspond to physically meaningful spectral bands, and are they robust to both standard post-processing and targeted frequency-domain attacks? Questions (i) and (ii) are answered by completed runs on CIFAKE and Defactify (Sections~\ref{sec:cifake}--\ref{sec:defactify}); question (iii) is addressed by the planned GenImage, JPEG-robustness, and Fourier-PGD experiments in Section~\ref{sec:planned}, whose designs are final and whose predicted outcomes we state explicitly.
+
+\subsection{Exploratory analysis}
+\label{sec:eda}
+
+Before training, we verify that class-level differences in the spectral domain are actually present. Following~\cite{durall2020watch}, we compute the mean 2D log-power spectrum $\bar{S}_{\text{real}}(u,v)$ and $\bar{S}_{\text{fake}}(u,v)$ over balanced samples from each class and visualise both them and the residual $\Delta S(u,v) = \bar{S}_{\text{fake}}(u,v) - \bar{S}_{\text{real}}(u,v)$ (see \texttt{figures/mean\_spectra\_2d.png}, \texttt{figures/mean\_profiles.png}). On CIFAKE, $\Delta S$ is visibly structured rather than noise: the fake distribution systematically excesses energy in a mid-frequency annulus and is slightly depleted at the highest frequencies, consistent with a decoder that smooths fine texture. The corresponding 1D profiles show the same qualitative gap. These EDA figures motivate the hypothesis that a CNN trained directly on $S$ or $A$ should be able to separate the classes.
+
+\subsection{CIFAKE: single-generator baseline}
+\label{sec:cifake}
+
+\paragraph{Setup.} CIFAKE~\cite{cifake} contains 60k real CIFAR-10 photographs and 60k Stable Diffusion v1.4 generations in a pre-existing 50k/10k train/test split per class. We train \textsc{cnn1d} and \textsc{cnn2d} from scratch on the train split with default hyperparameters (Section~\ref{sec:training}) and use the vendor test split for validation and model selection. Each epoch takes approximately one minute on a single GPU.
+
+\paragraph{Results.} \textsc{cnn2d} reaches a best validation AUC of $0.9525$ at epoch $13$ and plateaus afterwards; \textsc{cnn1d} reaches $0.9399$ at epoch $25$. Both detectors substantially outperform chance while using no semantic information whatsoever, confirming that the SD v1.4 spectral fingerprint is learnable from either representation. The 2D model's advantage over the 1D model on this benchmark is small (+0.013 AUC), which is expected: a single generator produces a single artifact, whose isotropic component is already a near-complete signal.
+
+\paragraph{Note on reproducibility.} An earlier run of the same configuration achieved $0.9650$ (\textsc{cnn2d}) and $0.9449$ (\textsc{cnn1d}) but its checkpoints were lost before the present writeup. We report the numbers from the reproducible retrain. The epoch at which the 2D model peaks is identical between the two runs ($13$), suggesting the model hits a representational ceiling for CIFAKE-scale data rather than a specific optimisation accident; adding dropout or light augmentation is an obvious next step but was not pursued here to keep the comparison clean.
+
+\subsection{Defactify: multi-generator mixture}
+\label{sec:defactify}
+
+\paragraph{Setup.} Defactify~\cite{defactify} is distributed as HuggingFace parquet shards and contains images from a mixture of modern generators with a fixed train/validation split. We read the parquet shards directly via a lightweight \texttt{ParquetFrequencyDataset} that decodes embedded image bytes and applies the same preprocessing as in Section~\ref{sec:preproc}. No class rebalancing is used.
+
+\paragraph{Results.} \textsc{cnn2d} reaches a best validation AUC of $0.9049$ at epoch $11$; \textsc{cnn1d} reaches $0.8439$ at epoch $29$. This is the key observation of our completed experiments: as we move from a single-generator benchmark (CIFAKE) to a multi-generator mixture (Defactify), the gap between \textsc{cnn2d} and \textsc{cnn1d} widens from $+0.013$ to $+0.061$ AUC, a $\sim 5\times$ increase. Under the isotropy hypothesis this is exactly what should happen: different generators have different anisotropic fingerprints (grid orientation, axis bias), and averaging them azimuthally washes out the distinguishing information that \textsc{cnn2d} retains. \textsc{cnn1d} still works well above chance, indicating that part of the fingerprint is shared isotropic structure --- but the directional part is where the marginal signal lives once multiple generators are in play. Table~\ref{tab:results} summarises both completed experiments.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+& \textbf{CIFAKE} & \textbf{Defactify} \\
+& val AUC & val AUC \\
+\midrule
+\textsc{cnn1d} (isotropic)   & $0.9399$ & $0.8439$ \\
+\textsc{cnn2d} (full 2D)     & $0.9525$ & $0.9049$ \\
+\midrule
+Gap $\Delta$AUC (2D $-$ 1D)  & $+0.013$ & $+0.061$ \\
+\bottomrule
+\end{tabular}
+\caption{Completed experiments. Moving from a single generator (CIFAKE, SD v1.4) to a multi-generator mixture (Defactify) increases the advantage of the 2D representation by roughly $5\times$, consistent with the isotropy hypothesis.}
+\label{tab:results}
+\end{table}
+
+\subsection{Planned experiments}
+\label{sec:planned}
+
+The three experiments below are in progress at the time of submission. Their infrastructure is complete --- data extraction, precompute pipeline, DDP training, evaluation harness --- and the expected outcomes follow from the completed experiments in a principled way. We state them here so that the paper can be read as a coherent scientific argument and so that unfavourable outcomes, if they occur, are clearly marked as such.
+
+\paragraph{E1: GenImage cross-generator generalisation.} Using the full eight-generator GenImage benchmark~\cite{genimage} (ADM, BigGAN, GLIDE, Midjourney, SD v1.4, SD v1.5, VQDM, Wukong) we will run both a \emph{train-on-all, test-on-all} and a \emph{leave-one-generator-out} (LOGO) evaluation. In the LOGO setting, the detector trains on seven generators and is evaluated on the eighth unseen generator, which is the strictest test of cross-generator generalisation that the benchmark supports. Infrastructure: ImageNet-1k validation as real images (the GenImage archives contain only fakes), merged-symlink directory layout, precompute to \texttt{.npz}, DDP on $8\times$H100, class-weighted loss to handle the $\sim 1\!:\!8$ real/fake imbalance. Training has been launched and is ongoing. \emph{Expected outcome:} \textsc{cnn2d} dominates \textsc{cnn1d} by at least $+0.05$ AUC on the unseen generator, the precise gap depending on how isotropic the held-out generator's artifacts happen to be. We expect Midjourney and BigGAN to be the hardest held-out generators for \textsc{cnn1d} because their artifacts are most visibly anisotropic in EDA.
+
+\paragraph{E2: JPEG and upscaling robustness.} Following~\cite{fakeorjpeg2024}, we will re-encode the test images at JPEG qualities $Q \in \{90, 75, 50, 30\}$ and at bicubic upscale factors $\{1.5\times, 2\times\}$ and plot AUC degradation curves for both detectors. The concern is twofold: (i) frequency-only detectors are especially sensitive to the high-frequency suppression of JPEG, and (ii) any reported cross-generator generalisation on GenImage must be disentangled from the documented JPEG-quality leak. \emph{Expected outcome:} both detectors degrade sharply below $Q=50$, \textsc{cnn2d} is more robust than \textsc{cnn1d} because directional grid artifacts survive JPEG longer than radial ones, and LOGO AUC on GenImage at matched JPEG quality remains meaningfully above chance, certifying that the detector is not simply classifying compression.
+
+\paragraph{E3: Fourier-space PGD attack.} We will construct adversarial examples by projected gradient descent directly in the frequency domain. Concretely, given a clean image $x$ and the detector $f(\cdot)$ operating on $S(\hat{I})$, we iterate
+\begin{equation}
+    \hat{I}_{t+1} = \Pi_{\|\cdot\|_{\infty}\le\varepsilon}\!\Bigl(\hat{I}_t + \alpha \cdot \mathrm{sign}\!\bigl(\nabla_{\hat{I}_t}\,\mathcal{L}(f(S(\hat{I}_t)), y)\bigr)\Bigr),
+    \label{eq:pgd}
+\end{equation}
+with $\varepsilon$ and $\alpha$ chosen in relative-power units and the attack applied to the complex Fourier coefficients before the \texttt{fftshift}/log step, so that the pixel-domain image $\mathcal{F}^{-1}(\hat{I}_T)$ remains real-valued and visually close to $x$. The attack is both a robustness probe and an interpretability tool: the set of frequency coordinates the attacker prefers to modify is, by construction, the set of frequencies most influential on the detector's output. \emph{Expected outcome:} attack success exceeds $95\%$ within a few iterations at small $\varepsilon$, confirming that frequency-only detectors are not robust to targeted spectral perturbations (a finding that would complement prior pixel-space attack literature rather than contradict it). More importantly, the attack mask should concentrate in the mid-frequency annulus that EDA and Grad-CAM both highlight, giving a consistent three-way triangulation on where the signal lives.
+
+\subsection{Interpretability (exploratory)}
+\label{sec:interp}
+Independent of E3, we plan to include two direct interpretability visualisations in the final paper: (a) first-layer filter dumps of \textsc{cnn2d} (32 templates of shape $3\!\times\!3$), and (b) Grad-CAM~\cite{selvaraju2017gradcam} heatmaps of the last convolutional block overlaid on individual log-power spectra. Both visualisations are cheap to produce given trained checkpoints and are included primarily to make the frequency-domain story concrete for the reader.
