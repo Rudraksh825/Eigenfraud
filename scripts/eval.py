@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import torch
 import numpy as np
+from tqdm import tqdm
 from torch.utils.data import DataLoader
 from sklearn.metrics import roc_auc_score, accuracy_score
 
@@ -59,7 +60,7 @@ def evaluate_checkpoint(ckpt_path, args, device, loader, dataset) -> dict:
 
     all_labels, all_probs = [], []
     with torch.no_grad():
-        for spec2d, prof1d, labels in loader:
+        for spec2d, prof1d, labels in tqdm(loader, desc=f"Eval {model_type.upper()}", unit="batch"):
             x = prof1d.to(device) if model_type == "1d" else spec2d.to(device)
             logits = model(x)
             probs = torch.softmax(logits, dim=1)[:, 1].cpu().numpy()

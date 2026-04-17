@@ -16,6 +16,7 @@ generator directory and concatenate / evaluate independently.
 """
 
 import csv
+import functools
 import os
 from pathlib import Path
 from typing import Callable, Optional, Tuple
@@ -122,21 +123,40 @@ class FrequencyDataset(Dataset):
         return {"real": labels.count(0), "fake": labels.count(1)}
 
 
+@functools.lru_cache(maxsize=512)
+def _load_shard(shard_file: str) -> Tuple[np.ndarray, np.ndarray]:
+    """Load a shard .npz and cache it in memory (per DataLoader worker process).
+
+    Returns (s2d, p1d) where:
+        s2d: (N, 1, H, W) float16
+        p1d: (N, L)       float32
+    """
+    data = np.load(shard_file)
+    return data["s2d"], data["p1d"]
+
+
 class CachedFrequencyDataset(Dataset):
     """
-    Fast drop-in for FrequencyDataset that reads pre-computed .npz files
-    written by scripts/precompute.py instead of running FFT on-the-fly.
+    Fast drop-in for FrequencyDataset that reads sharded .npz files written by
+    scripts/precompute.py.  Each shard holds ~1000 images; shards are cached
+    in memory (up to 8 per DataLoader worker process) via an LRU cache.
 
     Args:
         manifest: Path to manifest.csv produced by precompute.py
+                  Columns: path, label, shard_file, shard_idx
     """
 
     def __init__(self, manifest: str):
-        self.samples: list[Tuple[str, int, str]] = []  # (path, label, cache_file)
+        self.samples: list[Tuple[str, int, str, int]] = []
         with open(manifest) as f:
             for row in csv.DictReader(f):
-                if row["cache_file"]:
-                    self.samples.append((row["path"], int(row["label"]), row["cache_file"]))
+                if row["shard_file"]:
+                    self.samples.append((
+                        row["path"],
+                        int(row["label"]),
+                        row["shard_file"],
+                        int(row["shard_idx"]),
+                    ))
         if not self.samples:
             raise ValueError(f"No cached samples found in {manifest}")
 
@@ -144,10 +164,10 @@ class CachedFrequencyDataset(Dataset):
         return len(self.samples)
 
     def __getitem__(self, idx: int):
-        _, label, cache_file = self.samples[idx]
-        data = np.load(cache_file)
-        spectrum_2d_t = torch.from_numpy(data["s2d"].astype(np.float32))  # (1,H,W)
-        profile_1d_t  = torch.from_numpy(data["p1d"])                     # (r_max,)
+        _, label, shard_file, shard_idx = self.samples[idx]
+        s2d_arr, p1d_arr = _load_shard(shard_file)
+        spectrum_2d_t = torch.from_numpy(s2d_arr[shard_idx].astype(np.float32))  # (1,H,W)
+        profile_1d_t  = torch.from_numpy(p1d_arr[shard_idx])                     # (r_max,)
         return spectrum_2d_t, profile_1d_t, label
 
     def label_counts(self) -> dict:

@@ -64,3 +64,31 @@ python -c "from src.dataset import FrequencyDataset; d = FrequencyDataset('data/
 # Train (both models):
 python scripts/train.py --model 2d --data data/raw/genimage_all --epochs 30 --out-dir results/genimage --class-weight --wandb
 python scripts/train.py --model 1d --data data/raw/genimage_all --epochs 30 --out-dir results/genimage --class-weight --wandb
+
+
+
+
+
+
+
+
+
+
+
+
+Training GenImage:
+
+python scripts/precompute.py --data data/raw/genimage_all --cache-dir data/cache/genimage_sharded --workers 16 && python scripts/train.py --model 2d --cache data/cache/genimage_sharded/manifest.csv --epochs 30 --out-dir results/genimage --class-weight && python scripts/eval.py --checkpoint results/genimage/best_2d.pt results/genimage/best_1d.pt --data data/raw/genimage_all --split test
+
+Precompute:                                                                                                                                                                                                 
+  python scripts/precompute.py --data data/raw/genimage_all --cache-dir data/cache/genimage_sharded --workers 16                                                                                                                                                    
+                                                                                                                                                                                                              
+Train:                                                                                                                                                                                                      
+  python scripts/train.py --model 2d --cache data/cache/genimage_sharded/manifest.csv --epochs 30 --out-dir results/genimage --class-weight                                                                                                                                                   
+
+  python scripts/train.py --model 1d --cache data/cache/genimage_sharded/manifest.csv --epochs 30 --out-dir results/genimage --class-weight                                                                                                                                                   
+                                                                                                                                                                                                
+                                                                                                                                               
+                                                            
+Eval:
+  python scripts/eval.py --checkpoint results/genimage/best_2d.pt results/genimage/best_1d.pt --data data/raw/genimage_all --split test 

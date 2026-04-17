@@ -2,10 +2,10 @@
 Eigenfraud detector models.
 
 CNN1D — operates on the 1D azimuthally averaged radial power spectrum.
-         ~500k parameters. Captures only isotropic spectral structure.
+         ~180k parameters. Captures only isotropic spectral structure.
 
 CNN2D — operates on the full 2D log-power spectrum heatmap.
-         ~2M parameters. Captures both isotropic and anisotropic structure.
+         ~4M parameters. Captures both isotropic and anisotropic structure.
 
 Both output raw logits for 2-class (real / fake) classification.
 """

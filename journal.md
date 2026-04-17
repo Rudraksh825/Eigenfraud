@@ -4,6 +4,77 @@ This journal logs every decision, implementation, result, discussion, and conclu
 
 ---
 
+### 2026-04-17 — Full paper revision: tone, GenImage results, citations, image placeholders
+
+**What:** Revised all six paper sections plus main.bib:
+- **Tone/confidence:** Removed grand "we present/introduce/demonstrate" framing throughout; replaced with hedged exploratory language ("we find", "results suggest", "preliminary observations"). Added explicit class-project scope disclaimer in intro. Softened contributions from formal "three contributions" to plain "what this project does."
+- **GenImage results added:** Sec 4 now reports completed GenImage experiment (CNN2D test AUC=0.9990, acc=98.18%, EER=1.02%; CNN1D val AUC=0.9375). Four-generator subset caveat (ADM/BigGAN/VQDM/glide only) and JPEG-bias warning (citing Grommelt et al. 2024) made prominent.
+- **Results table updated:** Added GenImage column; added dagger footnotes about val-vs-test distinction and JPEG confound.
+- **Planned experiments removed:** The E1 LOGO/E2 JPEG/E3 PGD sections were cut; GenImage is now a completed result section. Adversarial robustness mentioned briefly in limitations only.
+- **Image placeholders added:** Four `\TODO{}` figure placeholders with generation instructions: (1) pipeline figure (use existing `figures/pipeline_per_image.png`), (2) EDA spectra (use `figures/mean_spectra_2d.png` + `figures/mean_profiles.png`), (3) results bar chart (matplotlib code snippet in comments), (4) Grad-CAM heatmap (generation instructions in comments).
+- **Bibliography:** Replaced placeholder `main.bib` with 30 real entries covering all cited works with correct authors/venues/years: Wang 2020, Durall 2020, Ho 2020, Rombach 2022, Corvi 2023, Ricker 2024, Frank 2020, Zhang 2019, Ojha 2023, Cozzolino 2024, Radford 2021, Oquab 2023, Grommelt 2024, Carlini 2020, Bird/Lotfi 2024 (CIFAKE), GenImage NeurIPS 2023, GenImage++, Defactify 2025, FF++ 2019, van der Schaaf 1996, Odena 2016, Loshchilov AdamW 2019, Loshchilov SGDR 2017, Madry 2018, Selvaraju 2017, Synthbuster 2023, SPAI 2025.
+- **Author updated:** main.tex author field set to Rudraksh Awasthi.
+**Why:** User requested: less formal/confident tone, honesty about class-project scope, updated GenImage results, image placeholders with descriptions, and proper complete bibliography.
+**Result / Status:** All six .tex files rewritten; main.bib fully populated; preamble.tex has graphicx added. Paper should compile (with \TODO{} placeholders visible). Figures need to be copied to the paper directory or \graphicspath set.
+
+---
+
+### 2026-04-17 — CLAUDE.md corrections via /init
+
+**What:** Fixed three inaccuracies in CLAUDE.md: (1) LRU cache size "8-shard" → "512-entry `functools.lru_cache`" (matching actual code); (2) GenImage++ line reference `dataset.py:81` → `dataset.py:80`; (3) clarified checkpoint locations — added per-dataset dirs (`results/cifake/`, `results/defactify/`, `results/genimage/`).
+**Why:** `/init` skill review of live source revealed mismatches between documentation and code.
+**Result / Status:** CLAUDE.md updated, no code changed.
+
+---
+
+### 2026-04-14 — GenImage 1D training result
+
+**What:** Ran `train.py --model 1d` on GenImage (cache `/tmp/genimage_shards/manifest.csv`, 30 epochs, batch 128, `--class-weight`). SSH session closed; log lost but checkpoint survived on Modal volume.
+**Why:** 1D vs 2D ablation for the paper — quantifies the value of anisotropic spectral structure.
+**Result / Status:** Best val AUC = **0.9375** at epoch 29. Compare: 2D CNN = 0.9990. Gap of ~6 AUC points. The 1D model loses directional/grid-artifact structure by collapsing the spectrum to a radial average — this gap is the ablation evidence that anisotropic features matter.
+
+---
+
+### 2026-04-14 — CLAUDE.md improvements
+
+**What:** Added three missing documentation items to CLAUDE.md: (1) `eval.py` has no `--cache` flag — must use `--data` pointing to raw images for eval even when training used `--cache`; (2) added GenImage eval command example with correct checkpoint path (`results/genimage/best_*.pt`); (3) noted `precompute.py --shard-size` flag (default 1000).
+**Why:** These were genuine gaps that could cause confusion — especially the eval/cache limitation.
+**Result / Status:** Done.
+
+---
+
+### 2026-04-14 — GenImage 2D test eval results
+
+**What:** Ran `eval.py` on the GenImage test split (35,406 samples, held-out 10% via `make_splits`). Dataset: 50k real + 304k fake across 4 generators (ADM, BigGAN, VQDM, glide).
+**Why:** Get formal test metrics for the paper — val AUC from training is not sufficient.
+**Result / Status:** AUC=0.9990, Accuracy=98.18%, EER=1.02%. Near-perfect detection on in-distribution GenImage generators. Cross-dataset eval (GenImage↔CIFAKE) still pending.
+
+---
+
+### 2026-04-14 — Fixed shard loading performance (decompression + LRU cache)
+
+**What:** Training on local `/tmp` shards was still 5.74s/batch. Root cause: (1) `_load_shard` LRU cache was only 8 slots — with 355 shards and random access, nearly every access was a cache miss; (2) shards were written with `savez_compressed`, so every cold load required decompression. Fix: increased `maxsize` from 8 to 512 in `src/dataset.py:126`, and converted all 355 local `/tmp` shards from compressed to uncompressed in-place (26 GB → 34 GB) using a 16-worker parallel script. Volume copy remains compressed/intact.
+**Why:** After the first cold load of each shard, all subsequent accesses are memory hits. With maxsize=512 and 355 shards, nothing is ever evicted.
+**Result / Status:** Shards decompressed. Training not yet restarted. Recommend `--workers 2 --batch-size 128`.
+
+---
+
+### 2026-04-14 — Copied shards to local disk to fix training I/O bottleneck
+
+**What:** Training on `CachedFrequencyDataset` from the Modal volume was running at 15s/batch (4426 batches/epoch × 30 epochs = weeks). Copied all 355 shard `.npz` files (26 GB) from `data/cache/genimage_sharded/` on the Modal network volume to `/tmp/genimage_shards/` on the instance's local SSD. Rewrote manifest at `/tmp/genimage_shards/manifest.csv` with updated absolute shard paths.
+**Why:** The Modal volume is network-attached storage — random shard reads with an 8-slot LRU cache cause constant cache misses and network fetches. Local SSD eliminates that latency.
+**Result / Status:** Copy complete. Training not yet restarted. Command: `python scripts/train.py --model 2d --cache /tmp/genimage_shards/manifest.csv --epochs 30 --out-dir results/genimage --class-weight --workers 8 --batch-size 128`. Note: `/tmp` is ephemeral — if the instance restarts, re-copy from the volume.
+
+---
+
+### 2026-04-14 — CLAUDE.md improvements via /init
+
+**What:** Made three targeted edits to `CLAUDE.md`: (1) fixed wrong line number in GenImage++ naming caveat (`dataset.py:79` → `dataset.py:81`); (2) added explicit note that CNN1D and CNN2D are custom vanilla CNNs with no pretrained weights, no skip connections, and no dropout; (3) added a "Training pipeline — intentional omissions" section documenting that no augmentation, normalization, dropout, mixed precision, or gradient clipping are used, with an explicit instruction not to add them without being asked.
+**Why:** `/init` command triggered codebase review. The line number was wrong after verifying against the actual source. The omissions section prevents future Claude instances from "helpfully" adding these.
+**Result / Status:** Done.
+
+---
+
 ### 2026-04-13 — Wrote explainer.md
 
 **What:** Created `explainer.md` — a comprehensive document covering the full pipeline (grayscale conversion, FFT, log-power spectrum, azimuthal averaging), the math behind each CNN layer type (conv, BN, ReLU, pooling, cross-entropy), both model architectures with parameter counts, what the models learn, four interpretability/visualisation methods (spectral residual, Grad-CAM, first-layer filters, feature PCA), the AdamW + cosine annealing optimiser math, and a full hyperparameter reference.
@@ -420,3 +491,46 @@ python scripts/train.py --model 2d --train-dir data/raw/cifake/train --val-dir d
 6. If per-epoch time is unacceptable, refactor `precompute.py` to write sharded `.h5`/`.npz` files (target: ~1000 images/shard, ~354 files total) before retrying the cached path.
 
 **Also note:** `data/raw/genimage_all/sdv4` symlink is currently broken (points to `stable_diffusion_v_1_4/...` path that does not exist on this volume); `label_counts` correctly excludes it. sdv5 and wukong archives are still unextracted — Wave 2 from the earlier H100 runbook never finished. Training above uses 4 generators (ADM, BigGAN, VQDM, glide) plus ImageNet nature, not the full 8.
+
+---
+
+### 2026-04-14 — CLAUDE.md review and fixes
+
+**What:** Ran `/init` to review CLAUDE.md against the current codebase. Found and fixed one bug (wrong param counts in `src/models.py` docstring — said ~500k/~2M, actual is ~180k/~4M, verified with `count_parameters()`). Added three missing gotchas to CLAUDE.md: (1) corrupt-image retry semantics in `FrequencyDataset.__getitem__`, (2) silent `--val-dir` fallback to `--train-dir` in `train.py`, (3) duplicate `collate_fn` definitions in `train.py` and `eval.py`.
+**Why:** CLAUDE.md is the primary onboarding document for future Claude sessions; accurate param counts and documented gotchas reduce debugging time.
+**Result / Status:** `src/models.py` docstring corrected. CLAUDE.md updated with 4 new notes under Architecture section.
+
+---
+
+### 2026-04-14 — GenImage training launched
+
+**What:** Launched both 2D and 1D GenImage training runs (on-the-fly FFT, no cache).
+- Pre-flight: dataset = 50k real + 304k fake; inodes at 78% (111k free — no longer at wall); GPU = H100 80GB.
+- 2D PID 5809: `python scripts/train.py --model 2d --data data/raw/genimage_all --epochs 30 --out-dir results/genimage --class-weight --wandb > /tmp/genimage_2d.log`
+- 1D PID 5872: `python scripts/train.py --model 1d --data data/raw/genimage_all --epochs 30 --out-dir results/genimage --class-weight --wandb > /tmp/genimage_1d.log`
+**Why:** Main GenImage training run. 4 generators active (ADM, BigGAN, VQDM, glide + ImageNet real). sdv4 symlink broken, sdv5/wukong not extracted.
+**Result / Status:** In progress. Monitor: `tr '\r' '\n' < /tmp/genimage_2d.log | grep "^Epoch" | tail`
+
+---
+
+### 2026-04-14 — Sharded precompute + CachedFrequencyDataset rewrite
+
+**What:** Killed the on-the-fly GenImage training runs (~7% through epoch 1 at ~3 sec/batch = ~3 hrs/epoch). Rewrote `scripts/precompute.py` and `src/dataset.py:CachedFrequencyDataset` to use sharded `.npz` files.
+- `precompute.py`: computes spectra in parallel (ProcessPoolExecutor), buffers into chunks of `--shard-size` (default 1000), writes each chunk as one `shard_NNNNN.npz` with keys `s2d` (N,1,H,W float16) and `p1d` (N,L float32). Manifest columns: `path, label, shard_file, shard_idx`. Samples are pre-shuffled so each shard has a real/fake mix. Resumable.
+- `CachedFrequencyDataset`: reads 4-column manifest, loads shards via module-level `lru_cache(maxsize=8)` per worker process. Tuple format changed from `(path, label, cache_file)` to `(path, label, shard_file, shard_idx)`.
+**Why:** On-the-fly FFT was ~3 sec/batch → ~3 hrs/epoch → 90 hrs for 30 epochs. The old per-image precompute hit the Modal volume's 500k inode cap after ~33k files. Sharded layout uses ~354 files for 354k images.
+**Result / Status:** Code written and imports verified. Precompute not yet run — user will run in their own tmux session.
+
+**Commands to run:**
+```bash
+# Step 1: precompute (run in tmux, takes ~1-2 hrs with 16 workers)
+python scripts/precompute.py --data data/raw/genimage_all \
+    --cache-dir data/cache/genimage_sharded --workers 16
+
+# Step 2: train from cache
+python scripts/train.py --model 2d --cache data/cache/genimage_sharded/manifest.csv \
+    --epochs 30 --out-dir results/genimage --class-weight
+
+python scripts/train.py --model 1d --cache data/cache/genimage_sharded/manifest.csv \
+    --epochs 30 --out-dir results/genimage --class-weight
+```

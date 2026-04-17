@@ -1,36 +1,3 @@
-@String(PAMI = {IEEE Trans. Pattern Anal. Mach. Intell.})
-@String(IJCV = {Int. J. Comput. Vis.})
-@String(CVPR= {IEEE Conf. Comput. Vis. Pattern Recog.})
-@String(ICCV= {Int. Conf. Comput. Vis.})
-@String(ECCV= {Eur. Conf. Comput. Vis.})
-@String(NIPS= {Adv. Neural Inform. Process. Syst.})
-@String(ICPR = {Int. Conf. Pattern Recog.})
-@String(BMVC= {Brit. Mach. Vis. Conf.})
-@String(TOG= {ACM Trans. Graph.})
-@String(TIP  = {IEEE Trans. Image Process.})
-@String(TVCG  = {IEEE Trans. Vis. Comput. Graph.})
-@String(TMM  = {IEEE Trans. Multimedia})
-@String(ACMMM= {ACM Int. Conf. Multimedia})
-@String(ICME = {Int. Conf. Multimedia and Expo})
-@String(ICASSP=	{ICASSP})
-@String(ICIP = {IEEE Int. Conf. Image Process.})
-@String(ACCV  = {ACCV})
-@String(ICLR = {Int. Conf. Learn. Represent.})
-@String(IJCAI = {IJCAI})
-@String(PR   = {Pattern Recognition})
-@String(AAAI = {AAAI})
-@String(CVPRW= {IEEE Conf. Comput. Vis. Pattern Recog. Worksh.})
-@String(CSVT = {IEEE Trans. Circuit Syst. Video Technol.})
-
-@String(SPL	= {IEEE Sign. Process. Letters})
-@String(VR   = {Vis. Res.})
-@String(JOV	 = {J. Vis.})
-@String(TVC  = {The Vis. Comput.})
-@String(JCST  = {J. Comput. Sci. Tech.})
-@String(CGF  = {Comput. Graph. Forum})
-@String(CVM = {Computational Visual Media})
-
-
 @String(PAMI  = {IEEE TPAMI})
 @String(IJCV  = {IJCV})
 @String(CVPR  = {CVPR})
@@ -38,74 +5,249 @@
 @String(ECCV  = {ECCV})
 @String(NIPS  = {NeurIPS})
 @String(ICPR  = {ICPR})
-@String(BMVC  =	{BMVC})
+@String(BMVC  = {BMVC})
 @String(TOG   = {ACM TOG})
 @String(TIP   = {IEEE TIP})
 @String(TVCG  = {IEEE TVCG})
 @String(TCSVT = {IEEE TCSVT})
-@String(TMM   =	{IEEE TMM})
+@String(TMM   = {IEEE TMM})
 @String(ACMMM = {ACM MM})
-@String(ICME  =	{ICME})
-@String(ICASSP=	{ICASSP})
+@String(ICME  = {ICME})
+@String(ICASSP= {ICASSP})
 @String(ICIP  = {ICIP})
 @String(ACCV  = {ACCV})
 @String(ICLR  = {ICLR})
 @String(IJCAI = {IJCAI})
-@String(PR = {PR})
-@String(AAAI = {AAAI})
-@String(CVPRW= {CVPRW})
-@String(CSVT = {IEEE TCSVT})
+@String(PR    = {PR})
+@String(AAAI  = {AAAI})
+@String(CVPRW = {CVPRW})
+@String(ICML  = {ICML})
 
+% ── Generative Models ──────────────────────────────────────────────────────────
 
-
-@misc{Authors14,
- author = {FirstName LastName},
- title = {The frobnicatable foo filter},
- note = {Face and Gesture submission ID 324. Supplied as supplemental material {\tt fg324.pdf}},
- year = 2014
+@inproceedings{ho2020ddpm,
+  title     = {Denoising Diffusion Probabilistic Models},
+  author    = {Ho, Jonathan and Jain, Ajay and Abbeel, Pieter},
+  booktitle = NIPS,
+  volume    = {33},
+  pages     = {6840--6851},
+  year      = {2020}
 }
 
-@misc{Authors14b,
- author = {FirstName LastName},
- title = {Frobnication tutorial},
- note = {Supplied as supplemental material {\tt tr.pdf}},
- year = 2014
+@inproceedings{rombach2022ldm,
+  title     = {High-Resolution Image Synthesis with Latent Diffusion Models},
+  author    = {Rombach, Robin and Blattmann, Andreas and Lorenz, Dominik and Esser, Patrick and Ommer, Bj{\"o}rn},
+  booktitle = CVPR,
+  pages     = {10684--10695},
+  year      = {2022}
 }
 
-@article{Alpher02,
-author = {FirstName Alpher},
-title = {Frobnication},
-journal = PAMI,
-volume = 12,
-number = 1,
-pages = {234--778},
-year = 2002
+% ── Frequency-Domain Detection ─────────────────────────────────────────────────
+
+@inproceedings{wang2020cnn,
+  title     = {{CNN}-Generated Images Are Surprisingly Easy to Spot\ldots For Now},
+  author    = {Wang, Sheng-Yu and Wang, Oliver and Zhang, Richard and Owens, Andrew and Efros, Alexei A.},
+  booktitle = CVPR,
+  pages     = {8695--8706},
+  year      = {2020}
 }
 
-@article{Alpher03,
-author = {FirstName Alpher and  FirstName Fotheringham-Smythe},
-title = {Frobnication revisited},
-journal = {Journal of Foo},
-volume = 13,
-number = 1,
-pages = {234--778},
-year = 2003
+@inproceedings{durall2020watch,
+  title     = {Watch Your Up-Convolution: {CNN} Based Generative Deep Neural Networks Are Failing to Reproduce Spectral Distributions},
+  author    = {Durall, Ricard and Keuper, Margret and Keuper, Janis},
+  booktitle = CVPR,
+  pages     = {9190--9198},
+  year      = {2020}
 }
 
-@article{Alpher04,
-author = {FirstName Alpher and FirstName Fotheringham-Smythe and FirstName Gamow},
-title = {Can a machine frobnicate?},
-journal = {Journal of Foo},
-volume = 14,
-number = 1,
-pages = {234--778},
-year = 2004
+@inproceedings{frank2020leveraging,
+  title     = {Leveraging Frequency Analysis for Deep Fake Image Recognition},
+  author    = {Frank, Joel and Eisenhofer, Thorsten and Sch{\"o}nherr, Lea and Fischer, Asja and Kolossa, Dorothea and Holz, Thorsten},
+  booktitle = ICML,
+  pages     = {3247--3258},
+  year      = {2020}
 }
 
-@inproceedings{Alpher05,
-author = {FirstName Alpher and FirstName Gamow},
-title = {Can a computer frobnicate?},
-booktitle = CVPR,
-pages = {234--778},
-year = 2005
+@inproceedings{zhang2019detecting,
+  title     = {Detecting and Simulating Artifacts in {GAN} Fake Images},
+  author    = {Zhang, Xu and Karaman, Svebor and Chang, Shih-Fu},
+  booktitle = {IEEE Workshop on Information Forensics and Security (WIFS)},
+  year      = {2019}
+}
+
+@inproceedings{corvi2023intriguing,
+  title     = {Intriguing Properties of Synthetic Images: From Generative Adversarial Networks to Diffusion Models},
+  author    = {Corvi, Riccardo and Cozzolino, Davide and Poggi, Giovanni and Nagano, Koki and Verdoliva, Luisa},
+  booktitle = CVPRW,
+  pages     = {973--982},
+  year      = {2023}
+}
+
+@inproceedings{ricker2024aeroblade,
+  title     = {{AEROBLADE}: Training-Free Detection of Latent Diffusion Images Using Autoencoder Reconstruction Error},
+  author    = {Ricker, Jonas and Lukovnikov, Denis and Fischer, Asja},
+  booktitle = CVPR,
+  year      = {2024}
+}
+
+@article{synthbuster2023,
+  title   = {Synthbuster: Towards Detection of Diffusion Model Generated Images},
+  author  = {Bammey, Quentin},
+  journal = {IEEE Open Journal of Signal Processing},
+  volume  = {4},
+  pages   = {1020--1029},
+  year    = {2023}
+}
+
+@inproceedings{spai2025,
+  title     = {Any-Resolution {AI}-Generated Image Detection by Spectral Learning},
+  author    = {Karageorgiou, Pantelis and Koutlis, Christos and Papadopoulos, Symeon and Kompatsiaris, Ioannis},
+  booktitle = CVPR,
+  year      = {2025}
+}
+
+% ── Semantic / Foundation-Model Detectors ─────────────────────────────────────
+
+@inproceedings{ojha2023univfd,
+  title     = {Towards Universal Fake Image Detectors that Generalize Across Generative Models},
+  author    = {Ojha, Utkarsh and Li, Yuheng and Lee, Yong Jae},
+  booktitle = CVPR,
+  pages     = {24480--24489},
+  year      = {2023}
+}
+
+@inproceedings{cozzolino2024raising,
+  title     = {Raising the Bar of {AI}-Generated Image Detection with {CLIP}},
+  author    = {Cozzolino, Davide and Poggi, Giovanni and Corvi, Riccardo and Nie{\ss}ner, Matthias and Verdoliva, Luisa},
+  booktitle = CVPRW,
+  pages     = {4356--4366},
+  year      = {2024}
+}
+
+@inproceedings{radford2021clip,
+  title     = {Learning Transferable Visual Models From Natural Language Supervision},
+  author    = {Radford, Alec and Kim, Jong Wook and Hallacy, Chris and Ramesh, Aditya and Goh, Gabriel and Agarwal, Sandhini and Sastry, Girish and Askell, Amanda and Mishkin, Pamela and Clark, Jack and others},
+  booktitle = ICML,
+  volume    = {139},
+  pages     = {8748--8763},
+  year      = {2021}
+}
+
+@misc{oquab2023dinov2,
+  title         = {{DINOv2}: Learning Robust Visual Features without Supervision},
+  author        = {Oquab, Maxime and Darcet, Timoth{\'e}e and Moutakanni, Th{\'e}o and Vo, Huy V. and Szafraniec, Marc and Khalidov, Vasil and Fernandez, Pierre and Haziza, Daniel and Massa, Francisco and El-Nouby, Alaaeldin and others},
+  year          = {2023},
+  eprint        = {2304.07193},
+  archivePrefix = {arXiv}
+}
+
+% ── Robustness and Dataset Artifacts ───────────────────────────────────────────
+
+@inproceedings{grommelt2024,
+  title     = {Fake or {JPEG}? Revealing Common Biases in Generated Image Detection Datasets},
+  author    = {Grommelt, Patrick and Weiss, Louis and Pfreundt, Franz-Josef and Keuper, Janis},
+  booktitle = {European Conference on Computer Vision Workshops (ECCV-W)},
+  year      = {2024}
+}
+
+@inproceedings{carlini2020evading,
+  title     = {Evading Deepfake-Image Detectors with White- and Black-Box Attacks},
+  author    = {Carlini, Nicholas and Farid, Hany},
+  booktitle = CVPRW,
+  year      = {2020}
+}
+
+% ── Datasets ───────────────────────────────────────────────────────────────────
+
+@article{cifake,
+  title   = {{CIFAKE}: Image Classification and Explainable Identification of {AI}-Generated Synthetic Images},
+  author  = {Bird, Jordan J. and Lotfi, Ahmad},
+  journal = {IEEE Access},
+  volume  = {12},
+  pages   = {15642--15650},
+  year    = {2024}
+}
+
+@inproceedings{genimage,
+  title     = {{GenImage}: A Million-Scale Benchmark for Detecting {AI}-Generated Image},
+  author    = {Zhu, Mingjian and Chen, Hao and Yan, Qi and Huang, Zheng and Wang, Chenhao and Li, Weiming and Bu, Yuan and Fan, Siwei and Wu, Huaming and Liu, Ziwei},
+  booktitle = NIPS,
+  year      = {2023}
+}
+
+@misc{genimagepp,
+  title         = {{GenImage++}: A Harder Benchmark for {AI}-Generated Image Detection},
+  author        = {Zhu, Mingjian and others},
+  year          = {2024},
+  eprint        = {2409.18536},
+  archivePrefix = {arXiv}
+}
+
+@misc{defactify,
+  title         = {A Comprehensive Dataset for Human vs.\ {AI} Generated Image Detection},
+  author        = {Yalavarthi, Vijaya Krishna and others},
+  year          = {2025},
+  eprint        = {2601.00553},
+  archivePrefix = {arXiv}
+}
+
+@inproceedings{ffpp,
+  title     = {{FaceForensics++}: Learning to Detect Manipulated Facial Images},
+  author    = {R{\"o}ssler, Andreas and Cozzolino, Davide and Verdoliva, Luisa and Riess, Christian and Thies, Justus and Nie{\ss}ner, Matthias},
+  booktitle = ICCV,
+  pages     = {1--11},
+  year      = {2019}
+}
+
+% ── Natural Image Statistics ───────────────────────────────────────────────────
+
+@article{vanderschaaf1996,
+  title   = {Modelling the Power Spectra of Natural Images: Statistics and Information},
+  author  = {van der Schaaf, Johan T. and van Hateren, Jan H.},
+  journal = {Vision Research},
+  volume  = {36},
+  number  = {17},
+  pages   = {2759--2770},
+  year    = {1996}
+}
+
+@article{odena2016deconvolution,
+  title   = {Deconvolution and Checkerboard Artifacts},
+  author  = {Odena, Augustus and Dumoulin, Vincent and Olah, Chris},
+  journal = {Distill},
+  year    = {2016},
+  doi     = {10.23915/distill.00003}
+}
+
+% ── Optimization ───────────────────────────────────────────────────────────────
+
+@inproceedings{loshchilov2019adamw,
+  title     = {Decoupled Weight Decay Regularization},
+  author    = {Loshchilov, Ilya and Hutter, Frank},
+  booktitle = ICLR,
+  year      = {2019}
+}
+
+@inproceedings{loshchilov2017sgdr,
+  title     = {{SGDR}: Stochastic Gradient Descent with Warm Restarts},
+  author    = {Loshchilov, Ilya and Hutter, Frank},
+  booktitle = ICLR,
+  year      = {2017}
+}
+
+% ── Adversarial & Interpretability ─────────────────────────────────────────────
+
+@inproceedings{madry2018pgd,
+  title     = {Towards Deep Learning Models Resistant to Adversarial Attacks},
+  author    = {Madry, Aleksander and Makelov, Aleksandar and Schmidt, Ludwig and Tsipras, Dimitris and Vladu, Adrian},
+  booktitle = ICLR,
+  year      = {2018}
+}
+
+@inproceedings{selvaraju2017gradcam,
+  title     = {{Grad-CAM}: Visual Explanations From Deep Networks via Gradient-Based Localization},
+  author    = {Selvaraju, Ramprasaath R. and Cogswell, Michael and Das, Abhishek and Vedantam, Ramakrishna and Parikh, Devi and Batra, Dhruv},
+  booktitle = ICCV,
+  pages     = {618--626},
+  year      = {2017}
 }
