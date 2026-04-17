@@ -16,8 +16,7 @@ The pipeline is deliberately minimal: a deterministic spectral preprocessing ste
 %
 \begin{figure}[t]
   \centering
-  \TODO{Insert pipeline figure here. Use figures/pipeline\_per\_image.png from the repo root, or recreate it. The figure should show: input image $\to$ grayscale resize $\to$ 2D log-power spectrum (heatmap) $\to$ azimuthal average (1D profile) $\to$ CNN classification.}
-  % \includegraphics[width=\linewidth]{pipeline_per_image.png}
+  \includegraphics[width=\linewidth]{figures/pipeline_per_image.png}
   \caption{Per-image preprocessing pipeline. Each image is reduced to grayscale, resized to $224\!\times\!224$, and mapped to a log-power spectrum via 2D FFT. The full spectrum feeds \textsc{cnn2d}; its azimuthally averaged radial profile feeds \textsc{cnn1d}. No pixel features are ever used.}
   \label{fig:pipeline}
 \end{figure}
