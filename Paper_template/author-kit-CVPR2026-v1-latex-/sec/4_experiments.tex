@@ -15,8 +15,8 @@ We ran three experiments, in increasing order of dataset scale and complexity: C
 %
 \begin{figure}[t]
   \centering
-  \TODO{Insert EDA spectra figure here. Use figures/mean\_spectra\_2d.png and figures/mean\_profiles.png. Suggested layout: (a) mean 2D log-power spectra for real vs.\ fake side-by-side with a difference heatmap; (b) mean 1D radial profiles for real (solid) vs.\ fake (dashed). These visualisations motivate the CNN approach by showing that class-level spectral differences exist.}
-  % \includegraphics[width=\linewidth]{mean_spectra_2d.png}
+  \includegraphics[width=\linewidth]{figures/mean_spectra_2d.png}
+  \includegraphics[width=\linewidth]{figures/mean_profiles.png}
   \caption{Mean log-power spectra over CIFAKE training images. \emph{Left/center:} mean 2D spectrum for real (CIFAR-10) and fake (SD v1.4) images, centered at DC. \emph{Right:} difference $\bar{S}_\text{fake} - \bar{S}_\text{real}$, which shows a structured mid-frequency excess in fake images. \emph{Bottom:} corresponding 1D azimuthal profiles. The visible class separation motivates training a CNN directly on these representations.}
   \label{fig:eda_spectra}
 \end{figure}
@@ -32,8 +32,6 @@ Before training, we check that class-level spectral differences are actually pre
 \paragraph{Setup.} CIFAKE~\cite{cifake} contains 60k real CIFAR-10 photographs and 60k Stable Diffusion v1.4 generations in a pre-existing 50k/10k train/test split per class. We train both models from scratch on the train split with default hyperparameters (Section~\ref{sec:training}) and evaluate on the vendor test split.
 
 \paragraph{Results.} \textsc{cnn2d} reaches a best validation AUC of 0.9525 at epoch 13 and plateaus afterwards; \textsc{cnn1d} reaches 0.9399 at epoch 25. Both comfortably beat chance using no pixel features. The 2D model's advantage is small (+0.013 AUC), which makes sense: a single generator produces a single artifact pattern, and the isotropic component is already a near-complete signal.
-
-\paragraph{A note on reproducibility.} An earlier run of the same configuration reached 0.9650 (\textsc{cnn2d}) and 0.9449 (\textsc{cnn1d}), but those checkpoints were lost. The numbers above are from a retrain. The best epoch is the same between runs (epoch 13 for the 2D model), which suggests the model hits a ceiling for this dataset rather than that either run was unusually lucky or unlucky.
 
 \subsection{Defactify: Multi-Generator Mixture}
 \label{sec:defactify}
@@ -76,13 +74,13 @@ Before training, we check that class-level spectral differences are actually pre
 %   ax.set_ylabel('AUC'); ax.legend(); ax.set_ylim(0.75, 1.01)
 %   plt.tight_layout(); plt.savefig('results_comparison.png', dpi=150)
 %
-\begin{figure}[t]
-  \centering
-  \TODO{Insert results comparison figure here (generate from the code snippet in the source comments, or create a similar grouped bar chart). The figure should show CNN1D vs CNN2D AUC side-by-side on CIFAKE, Defactify, and GenImage, making the growing gap visually clear.}
+%\begin{figure}[t]
+%  \centering
+%  \TODO{Insert results comparison figure here (generate from the code snippet in the source comments, or create a similar grouped bar chart). The figure should show CNN1D vs CNN2D AUC side-by-side on CIFAKE, Defactify, and GenImage, making the growing gap visually clear.}
   % \includegraphics[width=0.9\linewidth]{results_comparison.png}
-  \caption{Validation AUC for \textsc{cnn1d} and \textsc{cnn2d} across the three benchmarks. The gap between the two models grows with generator diversity (from +0.013 on CIFAKE to +0.061 on Defactify). The GenImage 2D result (0.999) is likely inflated by JPEG quality differences and should not be directly compared.}
-  \label{fig:results_bar}
-\end{figure}
+%  \caption{Validation AUC for \textsc{cnn1d} and \textsc{cnn2d} across the three benchmarks. The gap between the two models grows with generator diversity (from +0.013 on CIFAKE to +0.061 on Defactify). The GenImage 2D result (0.999) is likely inflated by JPEG quality differences and should not be directly compared.}
+%  \label{fig:results_bar}
+%\end{figure}
 
 \begin{table}[t]
 \centering
@@ -98,7 +96,7 @@ Before training, we check that class-level spectral differences are actually pre
 Gap $\Delta$AUC (2D $-$ 1D) & $+0.013$ & $+0.061$ & $+0.062$ \\
 \bottomrule
 \end{tabular}
-\caption{Results across all three completed experiments. $\dagger$ GenImage 1D is validation AUC (test eval not run); GenImage 2D is test AUC from a formal \texttt{eval.py} run. $\ddagger$ The GenImage 2D result is likely inflated by JPEG quality differences between real (ImageNet) and fake images in that dataset~\cite{grommelt2024}. The four-generator subset (ADM, BigGAN, VQDM, GLIDE) does not represent the full eight-generator benchmark.}
+\caption{Results across all three completed experiments. $\dagger$ GenImage 1D is validation AUC (test eval not run); GenImage 2D is test AUC from a formal eval run. $\ddagger$ The GenImage 2D result is likely inflated by JPEG quality differences between real (ImageNet) and fake images in that dataset~\cite{grommelt2024}. The four-generator subset (ADM, BigGAN, VQDM, GLIDE) does not represent the full eight-generator benchmark.}
 \label{tab:results}
 \end{table}
 
@@ -113,7 +111,7 @@ The results are encouraging. The model achieves above-chance detection, suggesti
 
 We note that this is exploratory: we do not claim to have ``broken'' SynthID or to be able to recover the embedded payload. What we show is that the \emph{presence} of the watermark is detectable as a spectral anomaly, which has implications for both watermark robustness and the general utility of frequency-domain analysis for provenance detection.
 
-\subsection{Interpretability (Exploratory)}
+
 \label{sec:interp}
 
 % ─────────────────────────────────────────────────────────────────────────────
@@ -130,12 +128,12 @@ We note that this is exploratory: we do not claim to have ``broken'' SynthID or 
 %   (a) original image, (b) its log-power spectrum, (c) Grad-CAM overlay on spectrum
 % This would show what frequency regions the model is actually attending to.
 %
-\begin{figure}[t]
-  \centering
-  \TODO{Insert Grad-CAM heatmap figure here. Generate using the CIFAKE or GenImage checkpoint by computing Grad-CAM on the last Conv2D block of CNN2D, overlaid on the log-power spectrum for one real and one fake example. The figure should show which frequency regions the model attends to --- ideally highlighting the mid-frequency annulus where EDA shows the largest real/fake difference.}
+%\begin{figure}[t]
+%  \centering
+%  \TODO{Insert Grad-CAM heatmap figure here. Generate using the CIFAKE or GenImage checkpoint by computing Grad-CAM on the last Conv2D block of CNN2D, overlaid on the log-power spectrum for one real and one fake example. The figure should show which frequency regions the model attends to --- ideally highlighting the mid-frequency annulus where EDA shows the largest real/fake difference.}
   % \includegraphics[width=\linewidth]{gradcam_examples.png}
-  \caption{Grad-CAM visualisation for \textsc{cnn2d} on one real and one fake image from the CIFAKE test set. Heatmaps are overlaid on the log-power spectrum (brighter = higher gradient weight). The model's attention concentrates in the mid-frequency annulus, consistent with the EDA observation that fake images have elevated energy in that region.}
-  \label{fig:gradcam}
-\end{figure}
+%  \caption{Grad-CAM visualisation for \textsc{cnn2d} on one real and one fake image from the CIFAKE test set. Heatmaps are overlaid on the log-power spectrum (brighter = higher gradient weight). The model's attention concentrates in the mid-frequency annulus, consistent with the EDA observation that fake images have elevated energy in that region.}
+%  \label{fig:gradcam}
+%\end{figure}
 
-We include two qualitative interpretability checks. First, Figure~\ref{fig:eda_spectra} shows the class-mean spectra and confirms that the spectral differences the CNN is learning from are real and structured, not noise. Second, Figure~\ref{fig:gradcam} shows Grad-CAM~\cite{selvaraju2017gradcam} heatmaps for \textsc{cnn2d} on individual examples: the model's gradient attention concentrates in the mid-frequency annulus, consistent with the EDA and with prior work~\cite{durall2020watch} on where generator artifacts tend to live. These are illustrative rather than rigorous, but they help build a story for why the 2D model outperforms the 1D model on diverse generators: the anisotropic mid-frequency structure is not fully captured by a radial average.
+

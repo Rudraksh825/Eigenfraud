@@ -63,7 +63,3 @@ Both models are trained with cross-entropy loss, AdamW~\cite{loshchilov2019adamw
 
 For GenImage training we use inverse-frequency class weighting (\texttt{--class-weight}) to handle the roughly 1:6 real-to-fake imbalance, and we pre-compute spectra to disk as sharded \texttt{.npz} files to avoid recomputing FFTs each epoch.
 
-\subsection{Implementation}
-\label{sec:impl}
-
-The codebase is PyTorch-only: three \texttt{src/} modules (\texttt{transforms.py}, \texttt{dataset.py}, \texttt{models.py}) and two scripts (\texttt{train.py}, \texttt{eval.py}). A single \texttt{FrequencyDataset} class computes both representations per item; the training script selects which one to use via a \texttt{--model} flag, so \textsc{cnn1d} and \textsc{cnn2d} see \emph{identical} preprocessing for every image.
