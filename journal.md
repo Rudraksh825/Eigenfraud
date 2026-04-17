@@ -19,6 +19,19 @@ This journal logs every decision, implementation, result, discussion, and conclu
 
 ---
 
+### 2026-04-16 — Paper: remove CVPR formatting, add SynthID section
+
+**What:** Three changes to the LaTeX paper:
+1. Removed CVPR submission formatting: switched `\usepackage[review]{cvpr}` to `\usepackage{cvpr}` in `main.tex`, and removed `\paperID`, `\confName`, `\confYear` definitions. This eliminates the line numbers on the sides and the CVPR header/footer — the paper now renders as a clean standalone document.
+2. Added `\subsection{SynthID Watermark Detection (Exploratory)}` in `sec/4_experiments.tex`, placed after the GenImage section and before Interpretability. Describes the finding that SynthID's frequency-domain perturbation is detectable as a spectral anomaly using the existing CNN2D pipeline, without access to the watermarking key.
+3. Added a SynthID paragraph to Related Work (`sec/2_formatting.tex`) contextualising the watermarking literature, and updated the conclusion (`sec/5_conclusion.tex`) to mention SynthID detection as an additional finding.
+4. Added `synthid2023` and `cox2007watermarking` entries to `main.bib`.
+
+**Why:** User: (a) is using the CVPR template for its formatting, not for submission — CVPR headers/line numbers should be removed; (b) has been testing whether Eigenfraud's spectral pipeline can detect SynthID watermarks in Gemini-generated images without the key, and it is working well — this result should be included in the paper.
+**Result / Status:** Complete. All .tex and .bib files updated.
+
+---
+
 ### 2026-04-17 — CLAUDE.md corrections via /init
 
 **What:** Fixed three inaccuracies in CLAUDE.md: (1) LRU cache size "8-shard" → "512-entry `functools.lru_cache`" (matching actual code); (2) GenImage++ line reference `dataset.py:81` → `dataset.py:80`; (3) clarified checkpoint locations — added per-dataset dirs (`results/cifake/`, `results/defactify/`, `results/genimage/`).
