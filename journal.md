@@ -19,6 +19,14 @@ This journal logs every decision, implementation, result, discussion, and conclu
 
 ---
 
+### 2026-04-16 — Paper: remove all em-dashes from prose
+
+**What:** Replaced every `---` em-dash in the six content `.tex` files with natural prose alternatives (commas, colons, parentheses, or restructured sentences). Remaining `---` occurrences are all inside LaTeX comments and do not appear in the rendered PDF.
+**Why:** User preference for less formal punctuation style.
+**Result / Status:** Complete. Zero em-dashes in rendered text.
+
+---
+
 ### 2026-04-16 — Paper: remove CVPR formatting, add SynthID section
 
 **What:** Three changes to the LaTeX paper:
