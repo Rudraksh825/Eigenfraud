@@ -4,6 +4,32 @@ This journal logs every decision, implementation, result, discussion, and conclu
 
 ---
 
+### 2026-04-17 — Cross-dataset and in-distribution eval results with MCC
+
+**What:** Ran eval.py (now with MCC) on CIFAKE test set (10k real / 10k fake) using both GenImage-trained and CIFAKE-trained checkpoints.
+
+**Results:**
+
+| Train set | Model | AUC | Acc | EER | MCC |
+|-----------|-------|-----|-----|-----|-----|
+| CIFAKE (in-dist) | 2D CNN | 0.9525 | 0.8633 | 0.1150 | 0.7405 |
+| CIFAKE (in-dist) | 1D CNN | 0.9399 | 0.7740 | 0.1325 | 0.6027 |
+| GenImage (cross) | 2D CNN | 0.5303 | 0.5242 | 0.4753 | 0.0483 |
+| GenImage (cross) | 1D CNN | 0.4615 | 0.4672 | 0.5180 | -0.0890 |
+
+**Why:** Assess whether spectral fingerprints generalize across generators. GenImage was trained on ADM/BigGAN/VQDM/glide; CIFAKE test contains SD v1.4 fakes.
+**Result / Status:** Complete. Cross-dataset models are at chance level — spectral features learned from one generator family do not transfer to another. In-distribution MCC of 0.74 (2D) is solid but below the comparison paper's 0.87+ (which uses pretrained features). The 2D→1D gap (0.74 vs 0.60 MCC) confirms anisotropic spectral structure contributes meaningfully.
+
+---
+
+### 2026-04-17 — Added MCC metric to eval.py
+
+**What:** Added Matthews Correlation Coefficient (MCC) to `scripts/eval.py` output alongside AUC, accuracy, and EER. Uses `sklearn.metrics.matthews_corrcoef` on the thresholded predictions (p >= 0.5).
+**Why:** The comparison paper (Table 1) reports MCC as its primary metric. Adding it to eval output enables direct comparison.
+**Result / Status:** Done. Both single-checkpoint and multi-checkpoint display formats updated.
+
+---
+
 ### 2026-04-17 — Full paper revision: tone, GenImage results, citations, image placeholders
 
 **What:** Revised all six paper sections plus main.bib:
@@ -555,3 +581,9 @@ python scripts/train.py --model 2d --cache data/cache/genimage_sharded/manifest.
 python scripts/train.py --model 1d --cache data/cache/genimage_sharded/manifest.csv \
     --epochs 30 --out-dir results/genimage --class-weight
 ```
+
+### 2026-04-17 — Add GenImage checkpoints to inference notebook
+
+**What:** Updated `notebooks/infer_images.ipynb` to test images against all available checkpoints — CIFAKE (1D+2D) and GenImage (1D+2D). Also fixed checkpoint paths from `results/best_*.pt` to `results/cifake/best_*.pt` to match actual file locations.
+**Why:** Previously only CIFAKE checkpoints were tested. Adding GenImage checkpoints lets us compare how models trained on different datasets classify the same images.
+**Result / Status:** Notebook updated, needs re-run.

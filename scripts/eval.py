@@ -16,7 +16,7 @@ import torch
 import numpy as np
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from sklearn.metrics import roc_auc_score, accuracy_score
+from sklearn.metrics import roc_auc_score, accuracy_score, matthews_corrcoef
 
 from src.dataset import FrequencyDataset, make_splits
 from src.models import build_model
@@ -77,6 +77,7 @@ def evaluate_checkpoint(ckpt_path, args, device, loader, dataset) -> dict:
         "auc": roc_auc_score(all_labels, all_probs),
         "acc": accuracy_score(all_labels, preds),
         "eer": compute_eer(all_labels, all_probs),
+        "mcc": matthews_corrcoef(all_labels, preds),
     }
 
 
@@ -114,15 +115,16 @@ def main():
         print(f"AUC        : {r['auc']:.4f}")
         print(f"Accuracy   : {r['acc']:.4f}")
         print(f"EER        : {r['eer']:.4f}")
+        print(f"MCC        : {r['mcc']:.4f}")
         print(f"{'='*50}")
     else:
-        W = 50
+        W = 57
         print(f"\nTest dir : {args.data}  (split: {args.split})")
         print("=" * W)
-        print(f"{'Model':<10}{'Checkpoint':<26}{'AUC':>7}{'Acc':>7}{'EER':>7}")
+        print(f"{'Model':<10}{'Checkpoint':<26}{'AUC':>7}{'Acc':>7}{'EER':>7}{'MCC':>7}")
         print("-" * W)
         for r in results:
-            print(f"{r['name']:<10}{r['ckpt']:<26}{r['auc']:>7.4f}{r['acc']:>7.4f}{r['eer']:>7.4f}")
+            print(f"{r['name']:<10}{r['ckpt']:<26}{r['auc']:>7.4f}{r['acc']:>7.4f}{r['eer']:>7.4f}{r['mcc']:>7.4f}")
         print("=" * W)
 
 
