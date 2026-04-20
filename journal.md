@@ -4,6 +4,46 @@ This journal logs every decision, implementation, result, discussion, and conclu
 
 ---
 
+### 2026-04-19 — Step 0.3: CIFAKE dataset audit
+
+**What:** Wrote `scripts/audit_dataset.py` and ran it on all four CIFAKE splits (train/REAL, train/FAKE, test/REAL, test/FAKE). Results:
+
+| Split | Count | Format | Resolution | Size (KB) mean |
+|-------|-------|--------|------------|----------------|
+| train / REAL | 50,000 | JPEG 100% | 32×32 (uniform) | 0.9 |
+| train / FAKE | 50,000 | JPEG 100% | 32×32 (uniform) | 0.9 |
+| test / REAL | 10,000 | JPEG 100% | 32×32 (uniform) | 0.9 |
+| test / FAKE | 10,000 | JPEG 100% | 32×32 (uniform) | 0.9 |
+
+**Why:** PIVOT.md step 0.3 — tabulate format, resolution, file size per split to identify construction artifacts.
+**Result / Status:** CIFAKE shows **no format or resolution bias** between real and fake splits — both are uniform JPEG 32×32 with nearly identical file sizes. If our detector learned shortcuts on CIFAKE, they are not from format differences. Defactify not yet audited (no local raw data). GenImage audit requires remote access.
+
+---
+
+### 2026-04-19 — Full project pivot confirmed; CLAUDE.md rewritten
+
+**What:** Confirmed complete pivot away from building a detector. CLAUDE.md was rewritten from scratch to reflect the new mission: auditing existing detectors (CNN1D, CNN2D, CNNDetection, FreqNet, UnivFD) for frequency shortcuts induced by dataset construction artifacts. Old training-centric commands demoted to "legacy" section. New primary work: `normalize_dataset.py`, `eval_external.py`, `band_ablation.py` (all to be written per PIVOT.md phases).
+**Why:** User confirmed the pivot is complete — the cross-dataset collapse (AUC 0.53, MCC 0.05 for GenImage→CIFAKE) motivates the shortcut audit thesis. Detector building is no longer the goal.
+**Result / Status:** CLAUDE.md updated. No code written yet — PIVOT.md phases begin from Phase 0.
+
+---
+
+### 2026-04-17 — FFT round-trip explainer notebook
+
+**What:** Created `notebooks/fft_roundtrip.ipynb` using `1.png` and `2.png` (same building, different colors). Four sections: (1) FFT decomposition into magnitude + phase + log-power spectrum, (2) full round-trip showing original → grayscale → spectrum → phase → reconstructed, (3) reconstruction error verification (should be ~1e-10), (4) phase vs magnitude experiment — magnitude-only (zero phase), phase-only (unit magnitude), and phase-swapped reconstructions. Demonstrates that phase carries spatial structure while magnitude carries texture/energy, and that our pipeline discards phase.
+**Why:** User wants a visual explanation for peers showing the FFT is invertible and what the log-power spectrum represents.
+**Result / Status:** Notebook created, not yet run.
+
+---
+
+### 2026-04-17 — Spectral residual inverse-FFT notebook
+
+**What:** Created `notebooks/spectral_residual_spatial.ipynb`. Computes mean log-power spectra for real and fake (CIFAKE, N=500 each), takes the residual (Fake − Real), then inverse-FFTs it to pixel space. The inverse uses `|ΔF| = sqrt(expm1(|ΔS|))` with zero phase. Also includes a per-image version that computes a single fake image's spectral deviation from the real mean and overlays it as a heatmap on the original.
+**Why:** User wanted to see what the frequency-domain residual looks like mapped back to image/pixel space — i.e. the spatial pattern of generator artifacts.
+**Result / Status:** Notebook created, not yet run.
+
+---
+
 ### 2026-04-17 — Cross-dataset and in-distribution eval results with MCC
 
 **What:** Ran eval.py (now with MCC) on CIFAKE test set (10k real / 10k fake) using both GenImage-trained and CIFAKE-trained checkpoints.
@@ -587,3 +627,9 @@ python scripts/train.py --model 1d --cache data/cache/genimage_sharded/manifest.
 **What:** Updated `notebooks/infer_images.ipynb` to test images against all available checkpoints — CIFAKE (1D+2D) and GenImage (1D+2D). Also fixed checkpoint paths from `results/best_*.pt` to `results/cifake/best_*.pt` to match actual file locations.
 **Why:** Previously only CIFAKE checkpoints were tested. Adding GenImage checkpoints lets us compare how models trained on different datasets classify the same images.
 **Result / Status:** Notebook updated, needs re-run.
+
+### 2026-04-19 — Reformatted PIVOT.md as checklist
+
+**What:** Restructured `PIVOT.md` from prose into a markdown checklist with `- [ ]` items per step. Condensed the narrative framing into a compact header (thesis, contributions, arc table) and kept all task details inline with their checkboxes.
+**Why:** Easier to track progress through the 6-phase plan at a glance. Checklist format makes it clear what's done vs pending.
+**Result / Status:** Complete. All content preserved, just reorganized.
