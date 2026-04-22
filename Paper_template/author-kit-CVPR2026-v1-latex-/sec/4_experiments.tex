@@ -4,7 +4,11 @@
 \subsection{Datasets}
 \label{sec:datasets}
 
-CIFAKE~\cite{cifake} contains balanced real and fake test splits with 10k images each; both classes are uniform $32\times32$ JPEG. Defactify~\cite{defactify} has 7.5k real and 37.5k fake test images stored as JPEG, but with a large resolution mismatch between classes. GenImage~\cite{genimage} uses 50k real photographs and 76,676 fake images in the evaluated split; real images are JPEG with diverse sizes, while fake images are PNG at canonical generator resolutions.
+We evaluate on three benchmarks chosen to span the spectrum of construction artifact severity.
+\textbf{CIFAKE}~\cite{cifake} contains 10k real (CIFAR-10) and 10k fake (Stable Diffusion v1.4) test images, both downsampled to $32\times32$ JPEG --- no format or resolution bias.
+\textbf{Defactify}~\cite{defactify} has 7.5k real and 37.5k fake JPEG test images; all images share the same format, but fake images have only 5--6 unique resolutions (canonical AI output sizes) vs.\ 180+ for real images --- resolution bias, no format bias.
+\textbf{GenImage}~\cite{genimage} uses 50k real ImageNet photographs (JPEG, hundreds of unique resolutions) and 76,677 ADM-generated fake images (PNG, uniform $256\times256$) --- simultaneous severe format and resolution bias.
+All six external detectors were trained on ProGAN/ForenSynths~\cite{wang2020cnn}, which has the same JPEG=real/PNG=fake construction as GenImage; all three test sets are therefore out-of-distribution.
 
 \subsection{Act 1: Spectral Bias in the Data}
 \label{sec:audit}
@@ -79,9 +83,9 @@ The normalization results are not a full deconfounding study, but they do separa
 \begin{table}[t]
 \centering
 \small
-\begin{tabular}{lcc}
+\begin{tabular}{lccc}
 \toprule
-\textbf{Detector} & \textbf{CIFAKE} & \textbf{GenImage} \\
+\textbf{Detector} & \textbf{CIFAKE} & \textbf{GenImage} & \textbf{$\Delta$AUC} \\
 \midrule
 CNNDetection~\cite{wang2020cnn} & 0.375 & 0.658 & $+0.283$ \\
 FreqNet~\cite{freqnet}          & 0.473 & \textbf{0.977} & $+0.504$ \\

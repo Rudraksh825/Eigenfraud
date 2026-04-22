@@ -1,13 +1,13 @@
 \begin{abstract}
 AI-generated image detectors are routinely reported to achieve near-perfect benchmark performance, yet fail substantially when applied outside their training conditions.
-We investigate whether this gap is driven by dataset construction artifacts, specifically systematic differences in file format and image resolution between real and fake splits, that detectors exploit as shortcuts rather than learning genuine generative signatures.
+We investigate whether this gap is driven by dataset construction artifacts --- systematic differences in file format and image resolution between real and fake splits --- that detectors exploit as shortcuts rather than learning genuine generative signatures.
 
-We evaluate six public detectors, namely CNNDetection, FreqNet, NPR, UnivFD, FatFormer, and B-Free, on three benchmarks spanning the full range of construction artifact severity: CIFAKE (no format or resolution bias), Defactify (resolution bias only), and GenImage (severe format \emph{and} resolution bias).
-On CIFAKE, the only artifact-free benchmark, all six external detectors score below chance (AUC range: 0.290--0.497), with several systematically calling real images fake more often than fake images.
-The same detectors recover dramatically on GenImage, which shares the JPEG=real/PNG=fake construction pattern with their ProGAN/ForenSynths training data: FreqNet rises from 0.473 to 0.977, FatFormer from 0.290 to 0.975, UnivFD from 0.300 to 0.961, and NPR from 0.435 to 0.951, representing an average swing of $+0.53$ AUC across five detectors between two test sets that differ only in whether the training shortcut is accessible.
+We evaluate six public detectors on three benchmarks chosen to span the range of construction artifact severity: one with no format or resolution bias, one with resolution bias only, and one with both.
+On the artifact-free benchmark, every external detector scores below chance --- not merely near-random, but systematically inverted, calling real images fake more often than fake images.
+The same detectors recover to near-perfect performance on the benchmark that reintroduces the format shortcut present in their training data, with an average swing exceeding 0.5~AUC between the two test sets.
 
-Format normalization (re-encoding all images to $256{\times}256$ PNG) reveals a detector taxonomy: five detectors remain near- or below-chance on CIFAKE after normalization, confirming that their shortcut is baked into pixel content rather than file metadata.
-B-Free is the exception: its DINOv2-based features rise from 0.497 to 0.637 on CIFAKE and reach 0.611 on Defactify, suggesting sensitivity to genuine visual quality differences rather than compression artifacts.
+We propose that below-chance performance on an artifact-free benchmark should be treated not as a failure mode but as a diagnostic: a reliable indicator that a detector has learned dataset construction patterns rather than genuine generative structure.
+Format normalization further reveals a taxonomy of detector behavior --- most detectors remain shortcut-bound even after re-encoding, while one detector based on semantic visual features improves, suggesting it responds to genuine image quality differences rather than compression artifacts.
 
-Our results demonstrate that high AUC on biased benchmarks reflects shortcut transfer rather than generalizable detection capability, and that below-chance performance on an artifact-free benchmark is a reliable diagnostic for shortcut-dependent learning.
+Taken together, our results suggest that high reported AUC in AI-generated image detection may reflect shortcut transfer rather than forensic capability, and that cross-dataset evaluation against artifact-controlled benchmarks is a necessary condition for meaningful progress claims.
 \end{abstract}
