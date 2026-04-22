@@ -1,3 +1,7 @@
+\newcommand{\hs}[1]{\textcolor{magenta}{(HS: #1)}}
+\newcommand{\ra}[1]{\textcolor{orange}{(RA: #1)}}
+
+
 \begin{abstract}
 Reported AUCs for AI-generated image detection are often taken as evidence that detectors have learned generation-specific traces. We audit a simpler alternative: many detectors may be learning benchmark shortcuts instead. Across CIFAKE, Defactify, and GenImage, we first measure construction artifacts in the data. CIFAKE is artifact-controlled: both real and fake images are uniform $32\times32$ JPEG. Defactify has strong resolution bias but no format bias. GenImage has both: real images are JPEG photographs with diverse sizes, while fake images are PNG outputs at canonical generator resolutions. These differences produce sharply different high-frequency spectral divergences between real and fake splits: $0.34$ for CIFAKE, $4.23$ for Defactify, and $6.16$ for GenImage.
 
