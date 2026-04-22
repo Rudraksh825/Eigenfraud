@@ -2,22 +2,32 @@
 \label{sec:conclusion}
 
 \paragraph{What the results support.}
-The completed evidence supports a simple conclusion: benchmark construction artifacts explain a substantial share of current detector behavior. The clean benchmark, CIFAKE, does not reward these shortcuts, and almost every detector fails there in the strongest possible way: below chance. The shortcut-rich benchmark, GenImage, restores strong performance for the same detectors. Defactify falls in between, and mostly produces near-chance behavior.
+Benchmark construction artifacts explain a substantial share of current detector behavior.
+On CIFAKE --- the only artifact-free benchmark in our evaluation --- all six external detectors score below chance (AUC 0.290--0.497), systematically inverting their decisions.
+The same detectors score 0.658--0.977 on GenImage, which reintroduces the JPEG=real/PNG=fake shortcut their training data contained.
+Defactify, which has resolution bias but no format bias, produces near-chance behavior (0.507--0.546) for all completed detectors --- confirming that shortcut recovery depends on the \emph{specific} artifact, not artifact presence in general.
 
-\paragraph{Why the below-chance result matters.}
-The most useful empirical lesson in this paper is that AUC $<0.5$ should be treated as a qualitative signal, not just a bad score. Repeated below-chance performance on an artifact-controlled benchmark indicates that the model has learned a stable but incorrect rule. That makes CIFAKE valuable not because it is perfect, but because it exposes inversion clearly.
+\paragraph{Why below-chance matters.}
+AUC $< 0.5$ is a qualitative signal, not just a bad score.
+A detector hovering at chance is lost; a detector scoring 0.290 or 0.300 has learned a stable but inverted rule.
+That inversion is only visible on a benchmark that withholds the learned shortcut.
+CIFAKE is useful precisely because it is artifact-free: the six detectors that fail there would not be diagnosed by any single-benchmark evaluation against a biased dataset.
+
+\paragraph{The B-Free exception.}
+B-Free is the only detector that improves after format normalization, rising from 0.497 to 0.637 on CIFAKE and reaching 0.611 on Defactify --- both measured in our own evaluation.
+This suggests that DINOv2-based semantic features respond to genuine visual quality differences rather than compression artifacts.
+It also shows the taxonomy is not binary (``all detectors fail''): the normalization probe separates shortcut-dependent detectors from those with more robust representations.
 
 \paragraph{Implications for evaluation.}
-Claims about AI-image detection should not rely on a single benchmark or on high AUC alone. At minimum, a detector should be tested on:
-\begin{itemize}[itemsep=2pt,topsep=2pt]
-  \item a benchmark with tightly controlled format and resolution,
-  \item a counter-benchmark where the usual shortcut is absent or reversed,
-  \item and a normalized version of the same data to see whether performance survives re-encoding.
-\end{itemize}
-Without that structure, it is too easy to confuse benchmark reward hacking with actual forensic capability.
+Claims about AI-image detection should not rest on a single benchmark or high AUC alone.
+At minimum, evaluation should include an artifact-free benchmark (to expose inversion), a shortcut-matched benchmark (to measure transfer), and a normalized variant (to isolate pixel-level vs.\ format-level dependence).
+Without that structure, benchmark reward hacking is indistinguishable from forensic capability.
 
 \paragraph{Limitations.}
-This draft uses the experiments that were complete at writing time. GenImage normalization and frequency-band ablation were still in progress and are therefore not needed for the main argument here. We also evaluate released checkpoints rather than retraining every method on artifact-controlled data.
+We evaluate released checkpoints rather than retraining every method on artifact-controlled data.
+GenImage normalization results and frequency-band ablation experiments are ongoing and will appear in the final version.
 
 \paragraph{Conclusion.}
-The paper's story is not that AI-image detection is impossible. It is that current benchmark numbers are too easy to inflate. Across three datasets, spectral separation grows with construction bias; detector inversion appears when shortcuts disappear; and detector success returns when those shortcuts are put back. That pattern is more consistent with learning the benchmark than learning the generator.
+Across three datasets with increasing construction bias (HF-L2: 0.34, 4.23, 6.16), detector performance tracks artifact severity rather than generator identity.
+Five detectors swing an average of $+0.53$ AUC between CIFAKE and GenImage --- the same two datasets evaluated in the same pipeline, differing only in whether their training shortcut is accessible.
+That pattern is more consistent with learning the benchmark than learning the generator.
