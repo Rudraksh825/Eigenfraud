@@ -96,6 +96,6 @@ CNN2D (ours)                    & 0.530 & (pending) & -- \\
 \label{tab:genimage}
 \end{table}
 
-Table~\ref{tab:genimage} provides the strongest evidence for shortcut transfer. The jump from CIFAKE to GenImage is dramatic: FatFormer improves by $+0.685$, UnivFD by $+0.661$, NPR by $+0.516$, FreqNet by $+0.504$, and CNNDetection by $+0.283$. Five detectors move from below-chance or near-chance on the artifact-free benchmark to above $0.95$ on the shortcut-laden one. These are not small robustness fluctuations — they are regime changes driven by a single variable: whether the JPEG=real/PNG=fake pattern is accessible.
+Table~\ref{tab:genimage} provides the strongest evidence for shortcut transfer. The jump from CIFAKE to GenImage is dramatic: FatFormer improves by $+0.685$, UnivFD by $+0.661$, NPR by $+0.516$, FreqNet by $+0.504$, and CNNDetection by $+0.283$. Five detectors move from below-chance or near-chance on the artifact-free benchmark to above $0.95$ on the shortcut-laden one. These are not small robustness fluctuations but rather regime changes driven by a single variable: whether the JPEG=real/PNG=fake pattern is accessible.
 
 The simplest explanation is that GenImage reintroduces exactly the shortcut signal missing from CIFAKE. Detector success tracks whether the benchmark makes the label easy for the wrong reason. That is the paper's core claim, now supported by a $+0.66$ average AUC swing across five detectors.

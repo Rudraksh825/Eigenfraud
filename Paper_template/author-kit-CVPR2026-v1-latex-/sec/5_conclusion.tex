@@ -3,9 +3,9 @@
 
 \paragraph{What the results support.}
 Benchmark construction artifacts explain a substantial share of current detector behavior.
-On CIFAKE --- the only artifact-free benchmark in our evaluation --- all six external detectors score below chance (AUC 0.290--0.497), systematically inverting their decisions.
+On CIFAKE, the only artifact-free benchmark in our evaluation, all six external detectors score below chance (AUC 0.290--0.497), systematically inverting their decisions.
 The same detectors score 0.658--0.977 on GenImage, which reintroduces the JPEG=real/PNG=fake shortcut their training data contained.
-Defactify, which has resolution bias but no format bias, produces near-chance behavior (0.507--0.546) for all completed detectors --- confirming that shortcut recovery depends on the \emph{specific} artifact, not artifact presence in general.
+Defactify, which has resolution bias but no format bias, produces near-chance behavior (0.507--0.546) for all completed detectors, confirming that shortcut recovery depends on the \emph{specific} artifact, not artifact presence in general.
 
 \paragraph{Why below-chance matters.}
 AUC $< 0.5$ is a qualitative signal, not just a bad score.
@@ -14,7 +14,7 @@ That inversion is only visible on a benchmark that withholds the learned shortcu
 CIFAKE is useful precisely because it is artifact-free: the six detectors that fail there would not be diagnosed by any single-benchmark evaluation against a biased dataset.
 
 \paragraph{The B-Free exception.}
-B-Free is the only detector that improves after format normalization, rising from 0.497 to 0.637 on CIFAKE and reaching 0.611 on Defactify --- both measured in our own evaluation.
+B-Free is the only detector that improves after format normalization, rising from 0.497 to 0.637 on CIFAKE and reaching 0.611 on Defactify, both measured in our own evaluation.
 This suggests that DINOv2-based semantic features respond to genuine visual quality differences rather than compression artifacts.
 It also shows the taxonomy is not binary (``all detectors fail''): the normalization probe separates shortcut-dependent detectors from those with more robust representations.
 
@@ -29,5 +29,5 @@ GenImage normalization results and frequency-band ablation experiments are ongoi
 
 \paragraph{Conclusion.}
 Across three datasets with increasing construction bias (HF-L2: 0.34, 4.23, 6.16), detector performance tracks artifact severity rather than generator identity.
-Five detectors swing an average of $+0.53$ AUC between CIFAKE and GenImage --- the same two datasets evaluated in the same pipeline, differing only in whether their training shortcut is accessible.
+Five detectors swing an average of $+0.53$ AUC between CIFAKE and GenImage, the same two datasets evaluated in the same pipeline, differing only in whether their training shortcut is accessible.
 That pattern is more consistent with learning the benchmark than learning the generator.
