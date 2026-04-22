@@ -1,20 +1,23 @@
 \section{Introduction}
 \label{sec:intro}
 
-The rapid improvement of diffusion-based image generators~\cite{ho2020ddpm,rombach2022ldm} has made pixel-space authenticity cues increasingly unreliable: for many generators, you cannot tell a generated photograph from a real one just by looking at it. This has revived an older question from image forensics: if you look not at \emph{what} an image depicts but at the \emph{statistical structure} of its spatial frequencies, can you still find generative artifacts?
+AI-image detectors often report strong benchmark performance~\cite{wang2020cnn,corvi2023intriguing,ricker2024aeroblade}, but those numbers are difficult to interpret when the benchmark itself leaks the label. If real and fake images differ in file format, compression history, or canonical resolution, then a detector can score well without learning anything about image synthesis. In that case the model is not detecting generation; it is learning the benchmark.
 
-For GAN-generated images, the answer was clearly yes. Wang~\etal~\cite{wang2020cnn} showed that a single CNN trained on one GAN generalises surprisingly well to others, and Durall~\etal~\cite{durall2020watch} traced this to spectral distortions introduced by transposed-convolution upsampling. Azimuthally averaged power spectra of real photographs approximately follow a $1/f^{\alpha}$ power law~\cite{vanderschaaf1996}, and GANs systematically violate it in detectable ways.
+This paper audits that failure mode directly. We study three datasets with very different levels of construction bias:
+\begin{itemize}[itemsep=2pt,topsep=2pt]
+  \item \textbf{CIFAKE} is close to an artifact-controlled stress test: both classes are $32\times32$ JPEG.
+  \item \textbf{Defactify} removes format bias but retains strong resolution bias.
+  \item \textbf{GenImage} contains both severe format and resolution bias.
+\end{itemize}
+These artifacts matter because they create shortcuts in exactly the frequency ranges many detectors inspect. A detector can therefore optimize benchmark AUC by exploiting a spurious cue that is easier to learn than generator-specific evidence. We use ``reward hacking'' in that limited sense: a model maximizes the benchmark objective by locking onto dataset construction signals rather than the intended concept.
 
-Diffusion models are architecturally different. They denoise iteratively in a latent space and decode through a VAE; there is no direct analogue to the transposed-convolution artifact. Whether the same frequency-domain story holds is an open empirical question that recent work has begun to address~\cite{corvi2023intriguing,ricker2024aeroblade,spai2025}, though some reported results are confounded by JPEG quality differences between real and fake images in commonly used benchmarks~\cite{grommelt2024}.
-
-This project looks at one specific aspect of that question: \emph{does the diffusion-era fingerprint live mainly in the isotropic component of the spectrum, or does the full 2D structure carry additional signal?} The azimuthal average is a rotation-invariant summary that throws away all directional information; the full 2D spectrum retains grid patterns, axis-aligned biases, and other anisotropic structure. Prior frequency-domain detectors have generally committed to one representation or the other, often for practical rather than scientific reasons. We run a direct head-to-head comparison grounded in this isotropy question.
-
-\paragraph{What this project does.}
-\begin{enumerate}[itemsep=1pt,topsep=1pt]
-    \item \textbf{A controlled 1D--vs--2D comparison.} We train two architecturally matched CNNs on the same images, differing only in whether they see the full 2D log-power spectrum or its azimuthally averaged 1D profile. The 1D model has $\sim$180k parameters; the 2D model has $\sim$4M. Neither uses pretrained weights, semantic features, or data augmentation. The comparison tests whether diffusion artifacts are isotropic (in which case the 1D model should be competitive) or anisotropic (in which case the 2D model should pull ahead as generator diversity grows).
-    \item \textbf{Results on three benchmarks.} We report completed experiments on CIFAKE~\cite{cifake} (Stable Diffusion v1.4 vs CIFAR-10 photographs), Defactify~\cite{defactify} (a multi-generator parquet benchmark), and a four-generator subset of GenImage~\cite{genimage} (ADM, BigGAN, VQDM, GLIDE with ImageNet real images).
+\paragraph{What we show.}
+Our results support three concrete claims.
+\begin{enumerate}[itemsep=2pt,topsep=2pt]
+  \item \textbf{The benchmark bias is measurable.} The ordering of high-frequency divergence is not subtle: CIFAKE $<\!\!<$ Defactify $<$ GenImage.
+  \item \textbf{AUC $< 0.5$ is diagnostic, not just bad luck.} On CIFAKE, six external detectors score below chance. This means their decisions are often inverted, which is evidence that they learned a wrong but internally consistent rule.
+  \item \textbf{Detector success tracks shortcut availability.} The same detectors that invert on CIFAKE recover very high AUC on GenImage, where the JPEG/PNG shortcut is present again.
 \end{enumerate}
 
-Across the three datasets, the gap between the 2D and 1D models grows with generator diversity: +0.013 AUC on CIFAKE (single generator), +0.061 on Defactify (multi-generator mixture), and +0.061 on GenImage validation (four generators, though this is an in-distribution eval with caveats discussed in Section~\ref{sec:genimage}). This is consistent with the hypothesis that directional artifacts in the spectrum carry more discriminative signal as the generator pool diversifies.
-
-\paragraph{Scope and limitations.} This is a small-scale class project, not a production system. We restrict ourselves to features from the Fourier transform of individual images, use no pretrained encoders, and make no claims about real-world deployment. The results are exploratory and the GenImage numbers in particular should be read with the JPEG-bias caveat in mind. The goal is to understand what a deliberately simple frequency-only approach can and cannot do, rather than to beat state-of-the-art detectors built on much more compute and data.
+\paragraph{Scope and framing.}
+This is an audit paper, not a new detector paper. We do not claim to solve AI-image detection. We use public checkpoints, dataset audits, spectral summaries, and controlled re-encoding to ask a narrower question: when a detector performs well, is it recognizing generation or exploiting the benchmark?

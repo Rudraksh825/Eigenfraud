@@ -1,0 +1,40 @@
+\section{Methodology}
+\label{sec:method}
+
+\subsection{Audit Protocol}
+\label{sec:audit_method}
+
+For each dataset split, we record image count, storage format, resolution statistics, and file size. We treat two properties as likely shortcut sources:
+\begin{itemize}[itemsep=2pt,topsep=2pt]
+  \item \textbf{Format bias:} one class is predominantly JPEG and the other PNG.
+  \item \textbf{Resolution bias:} one class occupies a narrow set of canonical sizes while the other spans many natural image sizes.
+\end{itemize}
+
+\subsection{Spectral Characterization}
+\label{sec:spectral_method}
+
+To quantify how much these construction choices separate the classes, we compute mean radial log-power spectra for real and fake images. Each image is converted to grayscale, transformed with a 2D FFT, and reduced to a 1D radial profile by azimuthal averaging~\cite{durall2020watch}. For each dataset we report a high-frequency divergence score,
+\[
+\mathrm{HF\text{-}L2} = \left\lVert \bar{S}_{\mathrm{real}}(r) - \bar{S}_{\mathrm{fake}}(r) \right\rVert_2
+\quad \text{for } r > 0.8\,r_{\max},
+\]
+where $r_{\max}$ is the Nyquist radius. This is not meant to be a detector. It is a diagnostic for how strongly dataset construction separates the two classes before any model sees them.
+
+\subsection{Detector Evaluation}
+\label{sec:eval_method}
+
+We evaluate six public detectors and one simple spectral CNN using their released checkpoints or the project's saved weights. Our core diagnostic is not only \emph{whether} AUC is high or low, but \emph{how it fails}.
+
+\paragraph{Why below-chance AUC matters.}
+If a detector lands near $0.5$ AUC on a new dataset, that may reflect ordinary out-of-distribution failure. If it lands well below $0.5$, then it is usually applying a decision rule in the wrong direction. In this paper we treat repeated AUC $< 0.5$ on the clean benchmark as evidence of an inverted rule, not just missing generalization.
+
+\subsection{Normalization as a Diagnostic}
+\label{sec:normalize}
+
+To probe whether performance depends on file-format and size mismatches, we also evaluate a normalized variant of the test data. Every image is:
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+  \item Convert to RGB (strip alpha channel and EXIF metadata).
+  \item Resize to $256 \times 256$ pixels using bilinear interpolation.
+  \item Save as PNG (lossless; no re-JPEG-compression).
+\end{enumerate}
+This transform is applied identically to both classes. It does not remove content-baked artifacts already present in the pixels, but it does remove trivial differences in container format and nominal resolution. We therefore use normalization as a diagnostic, not as a claim that all confounds are solved.

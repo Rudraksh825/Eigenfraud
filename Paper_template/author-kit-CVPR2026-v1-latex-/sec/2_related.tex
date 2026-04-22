@@ -1,0 +1,11 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Frequency cues in synthetic image detection.}
+Frequency-domain analyses have long been used to explain why generated images can be separable from photographs~\cite{durall2020watch,frank2020leveraging,corvi2023intriguing}. CNNDetection~\cite{wang2020cnn} popularized the idea that synthetic images share common low-level traces across generators, while later work studied diffusion-era artifacts~\cite{ricker2024aeroblade,synthbuster2023}. Our paper does not dispute that synthetic images may leave traces. It asks whether benchmark wins can be explained by a much simpler cue.
+
+\paragraph{Shortcut learning and biased benchmarks.}
+Grommelt \etal~\cite{grommelt2024} showed that generated-image benchmarks can be strongly confounded by JPEG-related bias. Wang \etal~\cite{wang2023frequency} framed shortcut learning in image classification more broadly, showing that neural networks often exploit frequency cues that correlate with labels but not with semantics. We build on these perspectives by treating AI-image detection as a shortcut-audit problem: if benchmark construction artifacts induce separable spectra, detectors may optimize those artifacts instead of learning generation.
+
+\paragraph{Detectors we audit.}
+We evaluate CNNDetection~\cite{wang2020cnn}, FreqNet~\cite{freqnet}, NPR~\cite{npr}, UnivFD~\cite{univfd}, FatFormer~\cite{fatformer}, and B-Free~\cite{bfree}, plus a simple spectral CNN trained in-house. The detector set intentionally mixes frequency-heavy models and foundation-model-based approaches. This lets us ask whether the shortcut problem is confined to one architectural family. The answer, based on completed results, is no: inversion on artifact-controlled data appears across almost the entire set, while only B-Free consistently benefits from removing some confounds.

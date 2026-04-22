@@ -1,139 +1,98 @@
 \section{Experiments}
 \label{sec:experiments}
 
-We ran three experiments, in increasing order of dataset scale and complexity: CIFAKE (single generator, balanced), Defactify (multi-generator mixture), and a four-generator subset of GenImage. All three are completed; Table~\ref{tab:results} summarises the numbers.
+\subsection{Datasets}
+\label{sec:datasets}
 
-% ─────────────────────────────────────────────────────────────────────────────
-% IMAGE PLACEHOLDER 2 — EDA Spectra Figure
-% ─────────────────────────────────────────────────────────────────────────────
-% This figure already exists in two parts:
-%   figures/mean_spectra_2d.png  — side-by-side 2D mean spectra (real, fake, diff)
-%   figures/mean_profiles.png    — overlaid 1D radial profiles for real vs fake
-% Copy both into the paper directory and uncomment the block below.
-% Suggested layout: two-panel figure, (a) 2D spectrum residual heatmap,
-% (b) 1D profile comparison. This goes in the EDA subsection.
-%
+CIFAKE~\cite{cifake} contains balanced real and fake test splits with 10k images each; both classes are uniform $32\times32$ JPEG. Defactify~\cite{defactify} has 7.5k real and 37.5k fake test images stored as JPEG, but with a large resolution mismatch between classes. GenImage~\cite{genimage} uses 50k real photographs and 76,676 fake images in the evaluated split; real images are JPEG with diverse sizes, while fake images are PNG at canonical generator resolutions.
+
+\subsection{Act 1: Spectral Bias in the Data}
+\label{sec:audit}
+
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\linewidth]{figures/mean_spectra_2d.png}
-  \includegraphics[width=\linewidth]{figures/mean_profiles.png}
-  \caption{Mean log-power spectra over CIFAKE training images. \emph{Left/center:} mean 2D spectrum for real (CIFAR-10) and fake (SD v1.4) images, centered at DC. \emph{Right:} difference $\bar{S}_\text{fake} - \bar{S}_\text{real}$, which shows a structured mid-frequency excess in fake images. \emph{Bottom:} corresponding 1D azimuthal profiles. The visible class separation motivates training a CNN directly on these representations.}
-  \label{fig:eda_spectra}
+  \includegraphics[width=\linewidth]{fig1_radial_spectra.png}
+  \caption{Mean radial log-power spectra for real vs.\ fake splits across all three datasets (original, unmodified data). Shaded regions: $\pm1\sigma$. The high-frequency divergence between real and fake grows with construction artifact severity: CIFAKE (no artifacts) shows near-identical spectra; Defactify (resolution bias) shows moderate divergence; GenImage (format + resolution bias) shows the largest separation. HF L2 divergence values: CIFAKE $=0.34$, Defactify $=4.23$, GenImage $=6.16$.}
+  \label{fig:spectra}
 \end{figure}
-
-\subsection{Exploratory Analysis}
-\label{sec:eda}
-
-Before training, we check that class-level spectral differences are actually present. Following~\cite{durall2020watch}, we compute the mean 2D log-power spectrum $\bar{S}_{\text{real}}(u,v)$ and $\bar{S}_{\text{fake}}(u,v)$ over balanced samples from each class and look at the residual $\Delta S(u,v) = \bar{S}_{\text{fake}}(u,v) - \bar{S}_{\text{real}}(u,v)$ (Figure~\ref{fig:eda_spectra}). On CIFAKE, $\Delta S$ is visibly structured rather than noise: fake images have a systematic energy excess in a mid-frequency annulus and a slight deficit at the highest frequencies, which is consistent with a decoder that smooths fine texture. The same gap appears in the 1D profiles. This is a basic sanity check: it tells us a CNN should be able to separate the classes, but not how well or whether the pattern will generalise.
-
-\subsection{CIFAKE: Single-Generator Baseline}
-\label{sec:cifake}
-
-\paragraph{Setup.} CIFAKE~\cite{cifake} contains 60k real CIFAR-10 photographs and 60k Stable Diffusion v1.4 generations in a pre-existing 50k/10k train/test split per class. We train both models from scratch on the train split with default hyperparameters (Section~\ref{sec:training}) and evaluate on the vendor test split.
-
-\paragraph{Results.} \textsc{cnn2d} reaches a best validation AUC of 0.9525 at epoch 13 and plateaus afterwards; \textsc{cnn1d} reaches 0.9399 at epoch 25. Both comfortably beat chance using no pixel features. The 2D model's advantage is small (+0.013 AUC), which makes sense: a single generator produces a single artifact pattern, and the isotropic component is already a near-complete signal.
-
-\subsection{Defactify: Multi-Generator Mixture}
-\label{sec:defactify}
-
-\paragraph{Setup.} Defactify~\cite{defactify} is distributed as HuggingFace parquet shards and contains images from a mixture of modern generators with a fixed train/validation split. We read the parquet files directly via a lightweight \texttt{ParquetFrequencyDataset} class that decodes the embedded image bytes and applies the same preprocessing as in Section~\ref{sec:preproc}.
-
-\paragraph{Results.} \textsc{cnn2d} reaches a best validation AUC of 0.9049 at epoch 11; \textsc{cnn1d} reaches 0.8439 at epoch 29. The key observation here is that moving from a single-generator benchmark (CIFAKE) to a multi-generator mixture (Defactify) increases the gap between the two models from +0.013 to +0.061 AUC, roughly a $5\times$ increase. The 1D model still works well above chance (the isotropic fingerprint is real), but the 2D model's advantage grows, which is what you would expect if different generators have different anisotropic artifacts that averaging azimuthally washes out.
-
-\subsection{GenImage: Four-Generator Subset}
-\label{sec:genimage}
-
-\paragraph{Setup.} The full GenImage benchmark~\cite{genimage} covers eight generators, but due to practical constraints (inode limits on the storage volume we used, incomplete archive extraction) we only trained on four: ADM, BigGAN, VQDM, and GLIDE. Real images come from the ImageNet-1k validation set (50k images). The combined dataset has approximately 50k real and 304k fake images, a roughly 1:6 imbalance that we handle with inverse-frequency class weighting in the loss. We train with on-the-fly FFT on a single GPU (H100), pre-compute spectra to sharded \texttt{.npz} files for the cached training path, and evaluate on a held-out 10\% test split from \texttt{make\_splits()}.
-
-\paragraph{Results.} \textsc{cnn2d} reaches a test AUC of \textbf{0.9990}, accuracy 98.18\%, and EER 1.02\%. \textsc{cnn1d} reaches a best validation AUC of \textbf{0.9375} at epoch 29 (a separate test-split eval for the 1D model was not run). The gap between the two models on this benchmark is roughly consistent with what we saw on Defactify.
-
-\paragraph{Important caveat.} The 0.9990 AUC for \textsc{cnn2d} should not be taken at face value. Grommelt~\etal~\cite{grommelt2024} have shown that GenImage has a systematic JPEG quality difference between its real images (ImageNet JPEG-encoded photographs) and its fake images (PNG or high-quality JPEG generations), which means a frequency-domain detector can achieve high accuracy largely by classifying compression quality. We have not controlled for this, and ran standard training without any JPEG-matching preprocessing. So the GenImage result tells us the detector \emph{can} separate these two distributions, but not whether it is detecting something specific to the generators or just picking up on the compression difference. A proper evaluation would require re-encoding both splits at matched JPEG quality, which we leave as future work.
-
-% ─────────────────────────────────────────────────────────────────────────────
-% IMAGE PLACEHOLDER 3 — Results Comparison Figure
-% ─────────────────────────────────────────────────────────────────────────────
-% This figure does not exist yet and needs to be created.
-% Suggested content: a grouped bar chart with three clusters (CIFAKE, Defactify,
-% GenImage) each containing two bars (CNN1D in one colour, CNN2D in another),
-% showing validation AUC. This makes the growing 2D–1D gap visually obvious.
-% Alternatively, a simple line plot with generator diversity on the x-axis
-% and AUC on the y-axis for each model would also work.
-%
-% To generate this figure, run the following in a notebook or script:
-%   import matplotlib.pyplot as plt
-%   import numpy as np
-%   datasets = ['CIFAKE', 'Defactify', 'GenImage\n(4-gen, val)']
-%   cnn1d  = [0.9399, 0.8439, 0.9375]
-%   cnn2d  = [0.9525, 0.9049, 0.9990]
-%   x = np.arange(len(datasets))
-%   w = 0.35
-%   fig, ax = plt.subplots(figsize=(6, 3))
-%   ax.bar(x - w/2, cnn1d, w, label='CNN1D (1D profile)')
-%   ax.bar(x + w/2, cnn2d, w, label='CNN2D (full spectrum)')
-%   ax.set_xticks(x); ax.set_xticklabels(datasets)
-%   ax.set_ylabel('AUC'); ax.legend(); ax.set_ylim(0.75, 1.01)
-%   plt.tight_layout(); plt.savefig('results_comparison.png', dpi=150)
-%
-%\begin{figure}[t]
-%  \centering
-%  \TODO{Insert results comparison figure here (generate from the code snippet in the source comments, or create a similar grouped bar chart). The figure should show CNN1D vs CNN2D AUC side-by-side on CIFAKE, Defactify, and GenImage, making the growing gap visually clear.}
-  % \includegraphics[width=0.9\linewidth]{results_comparison.png}
-%  \caption{Validation AUC for \textsc{cnn1d} and \textsc{cnn2d} across the three benchmarks. The gap between the two models grows with generator diversity (from +0.013 on CIFAKE to +0.061 on Defactify). The GenImage 2D result (0.999) is likely inflated by JPEG quality differences and should not be directly compared.}
-%  \label{fig:results_bar}
-%\end{figure}
 
 \begin{table}[t]
 \centering
 \small
 \begin{tabular}{lccc}
 \toprule
-& \textbf{CIFAKE} & \textbf{Defactify} & \textbf{GenImage} \\
-& val AUC & val AUC & val / test AUC \\
+\textbf{Dataset} & \textbf{Format bias} & \textbf{Resolution bias} & \textbf{HF-L2} \\
 \midrule
-\textsc{cnn1d} (isotropic)  & $0.9399$ & $0.8439$ & $0.9375^\dagger$ \\
-\textsc{cnn2d} (full 2D)    & $0.9525$ & $0.9049$ & $0.9990^{\dagger\ddagger}$ \\
-\midrule
-Gap $\Delta$AUC (2D $-$ 1D) & $+0.013$ & $+0.061$ & $+0.062$ \\
+CIFAKE    & None         & None        & 0.34 \\
+Defactify & None         & \textbf{Severe}  & 4.23 \\
+GenImage  & \textbf{Severe} & \textbf{Severe} & 6.16 \\
 \bottomrule
 \end{tabular}
-\caption{Results across all three completed experiments. $\dagger$ GenImage 1D is validation AUC (test eval not run); GenImage 2D is test AUC from a formal eval run. $\ddagger$ The GenImage 2D result is likely inflated by JPEG quality differences between real (ImageNet) and fake images in that dataset~\cite{grommelt2024}. The four-generator subset (ADM, BigGAN, VQDM, GLIDE) does not represent the full eight-generator benchmark.}
-\label{tab:results}
+\caption{Dataset audit summary. The spectral gap between real and fake grows with the severity of construction artifacts.}
+\label{tab:audit}
+\end{table}
+Figure~\ref{fig:spectra} and Table~\ref{tab:audit} establish the first part of the story. CIFAKE, the only artifact-controlled benchmark in our set, has almost no spectral separation between real and fake. Defactify shows a much larger gap, and GenImage is larger still. The ordering is exactly what we would expect if format and resolution mismatches are producing easy-to-learn frequency shortcuts before a detector sees any semantic content.
+
+\subsection{Act 2: Detector Performance on Original Benchmarks}
+\label{sec:baseline}
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Detector} & \textbf{CIFAKE} & \textbf{CIFAKE-N} & \textbf{Defactify} & \textbf{Defactify-N} \\
+\midrule
+CNNDetection~\cite{wang2020cnn} & 0.375 & 0.375 & 0.507 & 0.524 \\
+FreqNet~\cite{freqnet}          & 0.473 & 0.473 & 0.511 & 0.534 \\
+NPR~\cite{npr}                  & 0.435 & 0.435 & 0.520 & 0.556 \\
+UnivFD~\cite{univfd}            & 0.300 & 0.371 & 0.536 & 0.493 \\
+FatFormer~\cite{fatformer}      & 0.290 & 0.290 & --    & 0.537 \\
+B-Free~\cite{bfree}             & 0.497 & \textbf{0.637} & --    & \textbf{0.611} \\
+CNN2D (ours)                    & 0.530 & 0.472 & 0.546 & 0.537 \\
+\bottomrule
+\end{tabular}
+\caption{Completed AUC results on original and normalized test sets. Normalization converts all images to $256\times256$ PNG. CIFAKE-N and Defactify-N are normalized variants.}
+\label{tab:perf}
 \end{table}
 
-\subsection{SynthID Watermark Detection (Exploratory)}
-\label{sec:synthid}
+Table~\ref{tab:perf} contains the central negative result. On CIFAKE, every external detector is below chance. This is stronger than saying that the models do not generalize. AUCs of $0.375$, $0.473$, $0.435$, $0.300$, $0.290$, and $0.497$ imply that the detectors often rank real images as more fake than fake images. We interpret this as evidence of an inverted rule learned from biased training conditions.
 
-Google's SynthID~\cite{synthid2023} embeds an imperceptible watermark into images generated by Gemini and other Google AI systems. The watermark operates in the frequency domain: it modulates pixel values in a way that is invisible to human observers but leaves a persistent spectral signature that survives moderate post-processing such as JPEG compression and resizing.
+The contrast with Defactify is also useful. Defactify contains measurable bias, but it is mostly a resolution bias, not the JPEG/PNG pattern that dominates GenImage. The completed detector results stay near chance on both the original and normalized versions of Defactify. This suggests that benchmark success is not driven by \emph{any} artifact in the abstract. It depends on whether the test benchmark reproduces the particular shortcut the detector has learned.
 
-We tested whether Eigenfraud's frequency-domain pipeline can detect the presence of this watermark without any knowledge of the watermarking key or algorithm. The intuition is straightforward: if SynthID introduces a structured perturbation in frequency space, even one designed to be subtle, it may show up as a distinguishable deviation in the log-power spectrum. We collected a set of images generated by Gemini (which embed SynthID by default) and matched real photographs, then evaluated whether a retrained \textsc{cnn2d} could separate the two classes using only spectral features.
+\subsection{Act 2 (cont.): Effect of Normalization}
+\label{sec:norm_results}
 
-The results are encouraging. The model achieves above-chance detection, suggesting that SynthID's frequency-domain perturbations are learnable from the log-power spectrum without access to the watermark key. This is consistent with the broader finding of the project: generative models, whether diffusion-based or watermarked, leave spectral signatures that are detectable by a simple CNN operating purely in the frequency domain.
+\noindent\textbf{CIFAKE after normalization.}
+Most detectors do not move at all: CNNDetection, FreqNet, NPR, and FatFormer have identical AUC before and after normalization. This implies that their failure on CIFAKE is not tied to file metadata alone. The misleading cue is already embedded in the pixels, likely through the blocky appearance of heavily compressed $32\times32$ natural images.
 
-We note that this is exploratory: we do not claim to have ``broken'' SynthID or to be able to recover the embedded payload. What we show is that the \emph{presence} of the watermark is detectable as a spectral anomaly, which has implications for both watermark robustness and the general utility of frequency-domain analysis for provenance detection.
+\noindent\textbf{The B-Free exception.}
+B-Free is the only detector that clearly improves after normalization, rising from $0.497$ to $0.637$ on CIFAKE and reaching $0.611$ on normalized Defactify. This suggests a different operating regime: once format confounds are reduced, B-Free's DINOv2-based features can use visual quality differences that the frequency-heavy models do not exploit reliably.
 
+\noindent\textbf{Interpretation.}
+The normalization results are not a full deconfounding study, but they do separate two behaviors. Most detectors remain shortcut-bound even after re-encoding. B-Free benefits from cleaner inputs. That contrast is useful because it shows the story is not simply ``all detectors fail.'' The more specific result is that most current detectors appear to depend on brittle benchmark cues, while at least one model seems partially sensitive to something more robust.
 
-\label{sec:interp}
+\subsection{Act 3: Shortcut Transfer on GenImage}
+\label{sec:genimage_results}
 
-% ─────────────────────────────────────────────────────────────────────────────
-% IMAGE PLACEHOLDER 4 — Grad-CAM Heatmaps
-% ─────────────────────────────────────────────────────────────────────────────
-% This figure does not exist yet and needs to be generated from the checkpoints.
-% Grad-CAM requires hooking into the last convolutional block of CNN2D.
-% To generate:
-%   1. Load results/genimage/best_2d.pt (or results/cifake/best_2d.pt)
-%   2. Register a backward hook on the last Conv2D layer (before global avg pool)
-%   3. Run a real image and a fake image through the model
-%   4. Compute the Grad-CAM heatmap and overlay it on the log-power spectrum
-% The figure should show 2 rows (real + fake), 3 columns:
-%   (a) original image, (b) its log-power spectrum, (c) Grad-CAM overlay on spectrum
-% This would show what frequency regions the model is actually attending to.
-%
-%\begin{figure}[t]
-%  \centering
-%  \TODO{Insert Grad-CAM heatmap figure here. Generate using the CIFAKE or GenImage checkpoint by computing Grad-CAM on the last Conv2D block of CNN2D, overlaid on the log-power spectrum for one real and one fake example. The figure should show which frequency regions the model attends to --- ideally highlighting the mid-frequency annulus where EDA shows the largest real/fake difference.}
-  % \includegraphics[width=\linewidth]{gradcam_examples.png}
-%  \caption{Grad-CAM visualisation for \textsc{cnn2d} on one real and one fake image from the CIFAKE test set. Heatmaps are overlaid on the log-power spectrum (brighter = higher gradient weight). The model's attention concentrates in the mid-frequency annulus, consistent with the EDA observation that fake images have elevated energy in that region.}
-%  \label{fig:gradcam}
-%\end{figure}
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+\textbf{Detector} & \textbf{CIFAKE} & \textbf{GenImage} \\
+\midrule
+CNNDetection~\cite{wang2020cnn} & 0.375 & 0.658 \\
+FreqNet~\cite{freqnet}          & 0.473 & \textbf{0.977} \\
+NPR~\cite{npr}                  & 0.435 & \textbf{0.951} \\
+UnivFD~\cite{univfd}            & 0.300 & \textbf{0.961} \\
+\bottomrule
+\end{tabular}
+\caption{Completed original-data AUCs on CIFAKE and GenImage for detectors with both runs finished. The same models that fail on the artifact-controlled benchmark perform strongly once the shortcut-rich benchmark is restored.}
+\label{tab:genimage}
+\end{table}
 
+Table~\ref{tab:genimage} provides the strongest positive evidence for shortcut transfer. The jump from CIFAKE to GenImage is dramatic: FreqNet improves by $+0.504$ AUC, NPR by $+0.516$, UnivFD by $+0.660$, and CNNDetection by $+0.283$. These are not small robustness fluctuations. They are regime changes.
 
+The simplest explanation is that GenImage reintroduces exactly the kind of shortcut signal missing from CIFAKE: JPEG real images versus PNG fake images, plus canonical fake resolutions. In other words, detector success tracks whether the benchmark makes the label easy for the wrong reason. That is the paper's core claim.
