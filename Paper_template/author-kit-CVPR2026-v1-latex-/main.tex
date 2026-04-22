@@ -2,6 +2,9 @@
 
 \usepackage{cvpr}
 
+\newcommand{\hs}[1]{\textcolor{magenta}{(HS: #1)}}
+\newcommand{\ra}[1]{\textcolor{orange}{(RA: #1)}}
+
 % Import additional packages in the preamble file, before hyperref
 \input{preamble}
 
@@ -16,8 +19,12 @@ Auditing Shortcut and Reward-Hacking Behavior}
 \author{Anonymous CVPR 2026 Submission}
 
 \begin{document}
+
 \maketitle
 \input{sec/0_abstract}
+
+\hs{this is not a good section have to refine this} \\
+\ra{will check on it}
 \input{sec/1_intro}
 \input{sec/2_related}
 \input{sec/3_method}
