@@ -1,0 +1,11 @@
+Detector : univfd
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/pretrained_weights/fc_weights.pth
+Data     : /root/normalized/cifake/test
+Device   : cuda
+Loading model...
+Images   : 20000 (10000 real, 10000 fake)
+Running inference...
+
+AUC      : 0.3712
+Acc@0.5  : 0.4088
+Saved    : results/univfd_cifake_normalized.csv  (20000 rows)

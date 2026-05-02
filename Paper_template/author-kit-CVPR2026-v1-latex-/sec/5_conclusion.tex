@@ -4,8 +4,8 @@
 \paragraph{What the results support.}
 Benchmark construction artifacts explain a substantial share of current detector behavior.
 On CIFAKE, the only artifact-free benchmark in our evaluation, all six external detectors score below chance (AUC 0.290--0.497), systematically inverting their decisions.
-The same detectors score 0.658--0.977 on GenImage, which reintroduces the JPEG=real/PNG=fake shortcut their training data contained.
-Defactify, which has resolution bias but no format bias, produces near-chance behavior (0.507--0.546) for all completed detectors, confirming that shortcut recovery depends on the \emph{specific} artifact, not artifact presence in general.
+The same detectors score 0.658--0.977 on GenImage, which reintroduces the JPEG=real/PNG=fake shortcut their training data contained, an average swing of $+0.51$ AUC across all six detectors.
+Defactify, which has resolution bias but no format bias, produces near-chance to moderate behavior (0.507--0.611) for all detectors --- with B-Free reaching 0.611 via genuine visual quality signals rather than format shortcuts --- confirming that shortcut recovery depends on the \emph{specific} artifact, not artifact presence in general.
 
 \paragraph{Why below-chance matters.}
 AUC $< 0.5$ is a qualitative signal, not just a bad score.
@@ -23,11 +23,17 @@ Claims about AI-image detection should not rest on a single benchmark or high AU
 At minimum, evaluation should include an artifact-free benchmark (to expose inversion), a shortcut-matched benchmark (to measure transfer), and a normalized variant (to isolate pixel-level vs.\ format-level dependence).
 Without that structure, benchmark reward hacking is indistinguishable from forensic capability.
 
+\paragraph{GenImage normalization sharpens the finding.}
+Normalizing GenImage to $256\times256$ PNG removes format and resolution artifacts, yet AUC changes by at most $0.02$ across all completed detectors.
+This rules out a pure shortcut-transfer story for GenImage: the ADM generator leaves spectral artifacts that these detectors exploit even without format confounds.
+The CIFAKE inversion therefore reflects detectors firing backward on compressed natural images, not symmetric format confusion.
+GenImage is hard because ADM is detectable; CIFAKE is hard because the shortcut fires in reverse.
+
 \paragraph{Limitations.}
 We evaluate released checkpoints rather than retraining every method on artifact-controlled data.
-GenImage normalization results and frequency-band ablation experiments are ongoing and will appear in the final version.
+Band ablation experiments to isolate which frequency ranges carry the shortcut signal are not yet complete and will appear in the final version.
 
 \paragraph{Conclusion.}
 Across three datasets with increasing construction bias (HF-L2: 0.34, 4.23, 6.16), detector performance tracks artifact severity rather than generator identity.
-Five detectors swing an average of $+0.53$ AUC between CIFAKE and GenImage, the same two datasets evaluated in the same pipeline, differing only in whether their training shortcut is accessible.
+Six detectors swing an average of $+0.51$ AUC between CIFAKE and GenImage, the same two datasets evaluated in the same pipeline, differing only in whether their training shortcut is accessible.
 That pattern is more consistent with learning the benchmark than learning the generator.

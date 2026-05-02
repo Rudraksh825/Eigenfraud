@@ -24,14 +24,19 @@ Existing AI-generated image detectors learn frequency shortcuts introduced by da
 
 - [ ] **0.1** Read Grommelt et al. "Fake or JPEG?" (arXiv 2403.17608) — note methodology, controlled experiments, metrics
 - [ ] **0.2** Read Wang et al. "What do neural networks learn in image classification? A frequency shortcut perspective" (arXiv 2307.09829) — note framing and narrative structure
-- [ ] **0.3** Audit CIFAKE and Defactify: for each split (real train, fake train, real test, fake test), tabulate image count, format distribution (JPEG vs PNG), resolution distribution, file size distribution → becomes **Table 1**
-- [ ] **0.4** Clone and verify single-image inference for all three external detectors:
+- [x] **0.3** Audit CIFAKE and Defactify: for each split (real train, fake train, real test, fake test), tabulate image count, format distribution (JPEG vs PNG), resolution distribution, file size distribution → becomes **Table 1**
+- [x] **0.4** Clone and verify single-image inference for all external detectors (expanded to 6):
 
-| Detector | Repo |
-|----------|------|
-| CNNDetection | `PeterWang512/CNNDetection` |
-| FreqNet | `chuangchuangtan/FreqNet-DeepfakeDetection` |
-| UnivFD | `Yuheng-Li/UniversalFakeDetect` |
+| Detector | Repo | Weights | Notes |
+|----------|------|---------|-------|
+| CNNDetection | `PeterWang512/CNNDetection` | `weights/blur_jpg_prob0.5.pth` | ✓ |
+| FreqNet | `chuangchuangtan/FreqNet-DeepfakeDetection` | `4-classes-freqnet-v2.pth` | ✓ fixed hardcoded `.cuda()` in `__init__` |
+| UnivFD | `Yuheng-Li/UniversalFakeDetect` | `pretrained_weights/fc_weights.pth` | ✓ CLIP ViT-L/14 cached |
+| NPR | `chuangchuangtan/NPR-DeepfakeDetection` | `NPR.pth` | ✓ auto-strips DDP `module.` prefix |
+| FatFormer | `Michel-liu/FatFormer` | `pretrained/FatFormer_4class.pth` | ✓ patched clip.py path |
+| B-Free | `grip-unina/B-Free` | `weights/BFREE_dino2reg4/` | ✓ |
+
+All 6 wrapped by `scripts/eval_external.py --detector <name> --data <dir> --out <csv>`.
 
 ---
 
@@ -39,15 +44,15 @@ Existing AI-generated image detectors learn frequency shortcuts introduced by da
 
 *Act 1 of the paper. No training — pure data analysis.*
 
-- [ ] **1.1** Create `notebooks/dataset_characterization.ipynb`. For each dataset × split, compute:
-  - [ ] Mean radial power spectrum (via `transforms.py`)
-  - [ ] Variance of radial power spectrum
-  - [ ] Mean 2D log-power spectrum heatmap
-  - [ ] JPEG quality factor distribution (Pillow `_getexif()`)
-  - [ ] Image resolution distribution
-- [ ] **1.2** Plot mean radial spectrum: real vs fake per dataset. Compute L2 distance between curves in the high-frequency band (>80% of Nyquist) — this is the bias signal number
-- [ ] **1.3** Write a Modal script to run the same characterization on GenImage remotely. Save spectra as `.npz`, pull locally
-- [ ] **1.4** Produce **Figure 1**: 3-panel plot (CIFAKE / Defactify / GenImage), each panel = blue (real) vs red (fake) mean radial spectrum. High-freq divergence should be visually obvious
+- [x] **1.1** Create `scripts/characterize_datasets.py`. For each dataset × split, compute:
+  - [x] Mean radial power spectrum (via `transforms.py`)
+  - [x] Variance of radial power spectrum
+  - [x] Mean 2D log-power spectrum heatmap
+  - [ ] JPEG quality factor distribution (Pillow `_getexif()`) — collected but not plotted yet
+  - [ ] Image resolution distribution — already in status.md from Phase 0.3
+- [x] **1.2** Plot mean radial spectrum: real vs fake per dataset. HF L2 divergence (>80% Nyquist): CIFAKE=0.34, Defactify=4.23, GenImage=6.16
+- [x] **1.3** GenImage run locally on Modal (data directly accessible — no separate Modal script needed)
+- [x] **1.4** Produce **Figure 1**: `figures/fig1_radial_spectra.png` — 3-panel mean radial spectra with ±1σ shading. Also `figures/fig1b_2d_heatmaps.png` (supplementary). Spectra saved to `results/spectra/*.npz`.
 
 ---
 

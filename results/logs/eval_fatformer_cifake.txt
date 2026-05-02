@@ -1,0 +1,13 @@
+Detector : fatformer
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/pretrained/FatFormer_4class.pth
+Data     : data/raw/cifake/test
+Device   : cuda
+Loading model...
+Initial context: "X X X X X X X X"
+Number of context words (tokens): 8
+Images   : 20000 (10000 real, 10000 fake)
+Running inference...
+
+AUC      : 0.2903
+Acc@0.5  : 0.4995
+Saved    : results/fatformer_cifake_original.csv  (20000 rows)

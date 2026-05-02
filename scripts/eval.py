@@ -31,6 +31,7 @@ def parse_args():
     p.add_argument("--batch-size", type=int, default=64)
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--out", default=None, help="Save per-image CSV (path,label,score)")
     return p.parse_args()
 
 
@@ -78,6 +79,8 @@ def evaluate_checkpoint(ckpt_path, args, device, loader, dataset) -> dict:
         "acc": accuracy_score(all_labels, preds),
         "eer": compute_eer(all_labels, all_probs),
         "mcc": matthews_corrcoef(all_labels, preds),
+        "labels": all_labels,
+        "probs": all_probs,
     }
 
 
@@ -104,6 +107,18 @@ def main():
                         num_workers=args.workers, collate_fn=collate_fn)
 
     results = [evaluate_checkpoint(ckpt, args, device, loader, eval_ds) for ckpt in args.checkpoint]
+
+    if args.out and len(results) == 1:
+        import csv
+        paths = [s[0] for s in eval_ds.samples]
+        out_path = args.out
+        os.makedirs(os.path.dirname(out_path) if os.path.dirname(out_path) else ".", exist_ok=True)
+        with open(out_path, "w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["path", "label", "score"])
+            for path, label, score in zip(paths, results[0]["labels"], results[0]["probs"]):
+                w.writerow([path, int(label), float(score)])
+        print(f"Saved    : {out_path}  ({len(paths)} rows)")
 
     if len(results) == 1:
         r = results[0]

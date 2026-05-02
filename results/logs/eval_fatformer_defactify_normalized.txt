@@ -1,0 +1,13 @@
+Detector : fatformer
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/pretrained/FatFormer_4class.pth
+Data     : /root/normalized/defactify/test
+Device   : cuda
+Loading model...
+Initial context: "X X X X X X X X"
+Number of context words (tokens): 8
+Images   : 45000 (7500 real, 37500 fake)
+Running inference...
+
+AUC      : 0.5371
+Acc@0.5  : 0.1668
+Saved    : results/fatformer_defactify_normalized.csv  (45000 rows)

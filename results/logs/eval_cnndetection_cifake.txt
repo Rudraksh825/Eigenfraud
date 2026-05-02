@@ -1,0 +1,11 @@
+Detector : cnndetection
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/CNNDetection/weights/blur_jpg_prob0.5.pth
+Data     : data/raw/cifake/test
+Device   : cuda
+Loading model...
+Images   : 20000 (10000 real, 10000 fake)
+Running inference...
+
+AUC      : 0.3717
+Acc@0.5  : 0.4907
+Saved    : results/cnndetection_cifake_original.csv  (20000 rows)

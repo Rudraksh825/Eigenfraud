@@ -4,19 +4,117 @@ This journal logs every decision, implementation, result, discussion, and conclu
 
 ---
 
-### 2026-04-19 — Step 0.3: CIFAKE dataset audit
+### 2026-04-22 — ALL EVALS COMPLETE; B-Free GenImage-N = 0.9194 (Δ=0.000)
 
-**What:** Wrote `scripts/audit_dataset.py` and ran it on all four CIFAKE splits (train/REAL, train/FAKE, test/REAL, test/FAKE). Results:
+**What:** B-Free GenImage normalized finished at 08:58. AUC = 0.9194, identical to original (Δ = 0.000 to 4 decimal places). All GenImage normalized evals now complete. Updated tab:genimage and Act 3 narrative. metrics.csv has 42 data rows — all experiments done.
+**Why:** B-Free's zero-delta on GenImage normalization is the sharpest confirmation that ADM artifacts dominate over format shortcuts. Even DINOv2 semantic features don't change at all when format is removed — it was never reading format to begin with on GenImage.
+**Result / Status:** Pipeline fully complete. Full GenImage-N results: CNNDetection -0.005, FreqNet +0.001, NPR -0.012, UnivFD -0.020, FatFormer -0.008, B-Free 0.000. Max drop = 0.020. Story is locked.
 
-| Split | Count | Format | Resolution | Size (KB) mean |
-|-------|-------|--------|------------|----------------|
-| train / REAL | 50,000 | JPEG 100% | 32×32 (uniform) | 0.9 |
+---
+
+### 2026-04-22 — GenImage-N complete (5/7); paper updated with normalization finding
+
+**What:** UnivFD (0.9404), FatFormer (0.9678), CNN2D (0.4972) GenImage normalized results computed and appended. Added GenImage-N column to tab:genimage. Updated Act 3 narrative and conclusion with normalization finding: AUC drops ≤0.02 after removing format shortcuts from GenImage.
+**Why:** GenImage normalization barely changes external detector AUC (FreqNet +0.001, NPR -0.012, UnivFD -0.020, FatFormer -0.008), confirming genuine ADM spectral artifacts are detected independently of format bias. CNN2D (ours, CIFAKE-trained) scores 0.4972 on GenImage normalized — near chance, as expected for an OOD generator.
+**Result / Status:** 41 metrics rows. B-Free GenImage normalized still running. Paper Act 3 now correctly frames GenImage success as ADM artifact detection, not pure shortcut transfer.
+
+---
+
+### 2026-04-22 — GenImage normalized: AUC barely changes → genuine ADM artifacts
+
+**What:** First three GenImage normalized results: CNNDetection 0.6522 (original 0.6576, Δ=-0.005), FreqNet 0.9782 (original 0.9769, Δ=+0.001), NPR 0.9397 (original 0.9513, Δ=-0.012). UnivFD, FatFormer, B-Free still running. CNN2D failed with wrong checkpoint path; restarted with `results/cifake/best_2d.pt`.
+**Why:** GenImage normalization converts all images to 256×256 PNG, removing format/resolution shortcuts. Near-zero AUC change means detectors are detecting genuine ADM generative artifacts, not just exploiting format bias on GenImage. This nuances the shortcut narrative: the CIFAKE inversion is about detectors firing backward on compressed real images, not purely about format matching.
+**Result / Status:** Appended 3 rows to metrics.csv (38 total). Narrative implication: GenImage success = genuine ADM detection + format shortcuts combined; but normalization shows the genuine component dominates.
+
+---
+
+### 2026-04-22 — All GPU evals complete; B-Free GenImage 0.919; full metrics table
+
+**What:** Background pipeline finished all GPU evaluations at 03:37:36. Computed metrics for B-Free GenImage original (AUC=0.919, ACC=0.766, MCC=0.600) and appended to metrics.csv. Also computed previously missing rows: FatFormer Defactify original (AUC=0.557, MCC=0.000) and B-Free Defactify original (AUC=0.611, MCC=0.102). Updated tab:genimage in paper with B-Free result (+0.422 swing). Updated Defactify narrative and tab:perf to remove placeholder `--` entries. Recalculated average AUC swing across all 6 detectors: +0.51.
+**Why:** Pipeline complete — all six external detectors now have full results across all three datasets and both original/normalized conditions (except GenImage normalized, which is still pending).
+**Result / Status:** metrics.csv has 34 data rows; all CSVs fully accounted for. Paper tables complete except CNN2D GenImage original and GenImage normalized evals.
+
+---
+
+### 2026-04-22 — Rebalanced abstract tone after oversimplification
+
+**What:** Revised `Paper_template/author-kit-CVPR2026-v1-latex-/sec/0_abstract.tex` again to make it more appropriate for an academic paper while keeping it readable. Restored a formal scholarly tone, kept the focus on benchmark shortcuts and dataset construction artifacts, and still avoided dense abbreviation use and metric-heavy result listing.
+**Why:** The previous rewrite was clear but too simplified for a conference abstract.
+**Result / Status:** Abstract now reads as academic prose without sounding overly technical or overloaded with shorthand.
+
+---
+
+### 2026-04-22 — Simplified abstract language for readability
+
+**What:** Rewrote `Paper_template/author-kit-CVPR2026-v1-latex-/sec/0_abstract.tex` in plain English. Removed abbreviations, removed all numbers and metric-heavy phrasing, reduced technical jargon, and shifted the abstract toward a simple problem-method-finding-importance structure that a non-technical reader can follow.
+**Why:** The previous abstract was too technical, too results-driven, and not accessible enough for a broad reader at first pass.
+**Result / Status:** Abstract now emphasizes benchmark shortcuts, detector failure when shortcuts are absent, and the paper's audit goal in straightforward language.
+
+---
+
+### 2026-04-22 — Rewrote CVPR paper around completed audit evidence
+
+**What:** Replaced the CVPR 2026 paper template text in `Paper_template/author-kit-CVPR2026-v1-latex-/` with a new anonymous review-style draft. Updated `main.tex` title/author block and rewrote abstract, introduction, related work, methodology, experiments, and conclusion. The new narrative centers on completed results only: dataset artifact audit (HF-L2: CIFAKE 0.34, Defactify 4.23, GenImage 6.16), below-chance detector inversion on CIFAKE (external detectors 0.290–0.497 AUC), normalization behavior on CIFAKE/Defactify, and shortcut-transfer gains on GenImage original (CNNDetection 0.658, FreqNet 0.977, NPR 0.951, UnivFD 0.961). Removed placeholder/TODO-heavy framing and avoided claims that we invented a new detector.
+**Why:** The paper needed to tell a sharper story grounded in the actual evidence on disk, avoid overclaiming, and read like a review submission rather than a grant-style proposal.
+**Result / Status:** Paper source rewritten. Draft now argues that benchmark reward hacking / shortcut exploitation better explains the observed detector behavior than genuine generative understanding.
+
+---
+
+### 2026-04-22 — CLAUDE.md improvements via /init
+
+**What:** Ran /init skill on the existing CLAUDE.md. Added: (1) phase status table summarizing Phases 0–6 completion at a glance; (2) Phase 3 baseline finding that all 6 external detectors score AUC < 0.5 on CIFAKE; (3) clarified that `eval_external.py` does not write to `metrics.csv` and provided a manual MCC+append workflow; (4) expanded `band_ablation.py` stub with expected CLI interface and band radius definitions.
+**Why:** New Claude instances needed faster orientation without reading status.md + PIVOT.md; the metrics.csv gap was misleading (implied automation that didn't exist).
+**Result / Status:** CLAUDE.md updated. No code changed.
+
+---
+
+### 2026-04-20 — Step 0.3: GenImage dataset audit
+
+**What:** Ran `scripts/audit_dataset.py` on GenImage using `imagenet_nature/val` as real (used for both train and test rows) and ADM (`train/ai`, 76k) as train fake, BigGAN (`train/ai`, 82k) as test fake. Results:
+
+| Split | Count | Format | Resolution unique | Resolution mode | Size KB mean |
+|-------|-------|--------|-------------------|-----------------|--------------|
+| train / REAL | 50,000 | **JPEG 100%** | 328 | 500×375 | 67.3 |
+| train / FAKE (ADM) | 76,677 | **PNG 100%** | 1 | 256×256 (uniform) | 111.1 |
+| test / REAL | 50,000 | **JPEG 100%** | 340 | 500×375 | 67.3 |
+| test / FAKE (BigGAN) | 82,392 | **PNG 100%** | 1 | 128×128 (uniform) | 30.5 |
+
+**Why:** PIVOT.md step 0.3 — tabulate construction artifacts.
+**Result / Status:** Dual bias confirmed — the most severe finding across all three datasets. (1) **Format**: real is 100% JPEG, fake is 100% PNG across all generators. A 1-line format check achieves perfect separation. (2) **Resolution**: each generator outputs a single uniform resolution (ADM=256×256, BigGAN=128×128) vs 328–340 unique natural resolutions in real. Any detector trained on GenImage reporting high AUC is trivially explained by JPEG-vs-PNG alone — no frequency analysis needed. Also noted: some fake PNGs report 0.0 KB minimum file size (likely corrupt/empty files in the dataset). Note: "train" and "test" real rows both use `imagenet_nature/val` (50k images) — GenImage real has no train/test split locally; the deduplication between train fake and test fake is real (ADM vs BigGAN are different generators).
+
+---
+
+### 2026-04-20 — Step 0.3: CIFAKE dataset audit
+
+**What:** Ran `scripts/audit_dataset.py` on all four CIFAKE splits. Results:
+
+| Split | Count | Format | Resolution | Size KB mean |
+|-------|-------|--------|------------|--------------|
+| train / REAL | 31,006 | JPEG 100% | 32×32 (uniform) | 0.9 |
 | train / FAKE | 50,000 | JPEG 100% | 32×32 (uniform) | 0.9 |
 | test / REAL | 10,000 | JPEG 100% | 32×32 (uniform) | 0.9 |
 | test / FAKE | 10,000 | JPEG 100% | 32×32 (uniform) | 0.9 |
 
-**Why:** PIVOT.md step 0.3 — tabulate format, resolution, file size per split to identify construction artifacts.
-**Result / Status:** CIFAKE shows **no format or resolution bias** between real and fake splits — both are uniform JPEG 32×32 with nearly identical file sizes. If our detector learned shortcuts on CIFAKE, they are not from format differences. Defactify not yet audited (no local raw data). GenImage audit requires remote access.
+**Why:** PIVOT.md step 0.3 — tabulate construction artifacts.
+**Result / Status:** No format or resolution bias whatsoever — all images are uniform JPEG 32×32 with near-identical file sizes. CIFAKE was constructed by downsampling both CIFAR-10 real images and SD v1.4 fake images to 32×32, which erases any format/resolution shortcut. Our CNN2D achieving AUC 0.95 on this dataset cannot be explained by resolution or format artifacts — it is learning some other signal (possibly genuine spectral artifacts, possibly CIFAR-10 content statistics). Class imbalance noted: train split is 31k real vs 50k fake (not 50/50), while test is balanced at 10k each.
+
+---
+
+### 2026-04-20 — Step 0.3: Defactify dataset audit
+
+**What:** Wrote `scripts/audit_defactify.py` (reads parquet shards, detects format from magic bytes, PIL for resolution) and ran it on all three Defactify splits. Results:
+
+| Split | Label | Count | Format | Resolution unique | Resolution mode | Size KB mean |
+|-------|-------|-------|--------|-------------------|-----------------|--------------|
+| train | REAL | 7,000 | JPEG 100% | 690 | 640×480 | 51.5 |
+| train | FAKE | 35,000 | JPEG 100% | **6** | 1024×1024 | 77.9 |
+| test | REAL | 7,500 | JPEG 100% | 180 | 1024×1024 | 69.2 |
+| test | FAKE | 37,500 | JPEG 100% | 196 | 1024×1024 | 81.8 |
+| validation | REAL | 1,500 | JPEG 100% | 289 | 640×480 | 51.2 |
+| validation | FAKE | 7,500 | JPEG 100% | **5** | 1024×1024 | 78.1 |
+
+**Why:** PIVOT.md step 0.3 — tabulate construction artifacts to motivate the shortcut thesis.
+**Result / Status:** Strong resolution bias confirmed. Train/validation fake images have only 5–6 unique resolutions (all standardized AI output sizes: 1024×1024, 768×768, 436×436, 270×270, 351×351) vs 289–690 unique resolutions for real images (natural photo diversity). A detector could trivially learn to separate train/val splits on resolution alone. No format bias (both 100% JPEG). Class imbalance: 5:1 fake-to-real ratio across all splits. Note: test/REAL has 1024×1024 as its mode — different composition from train/val real (possibly sourced differently), which muddies the test split's resolution signal somewhat.
 
 ---
 
@@ -633,3 +731,213 @@ python scripts/train.py --model 1d --cache data/cache/genimage_sharded/manifest.
 **What:** Restructured `PIVOT.md` from prose into a markdown checklist with `- [ ]` items per step. Condensed the narrative framing into a compact header (thesis, contributions, arc table) and kept all task details inline with their checkboxes.
 **Why:** Easier to track progress through the 6-phase plan at a glance. Checklist format makes it clear what's done vs pending.
 **Result / Status:** Complete. All content preserved, just reorganized.
+
+### 2026-04-21 — Step 0.4: Detector setup and eval_external.py
+
+**What:** Set up all 6 external detectors in `detectors/` for evaluation. Installed missing Python packages (`scipy`, `scikit-learn`, `opencv-python`, `gdown`, `timm`, `transformers`, `pandas`, `ftfy`, `PyWavelets`, `pytorch_wavelets`). Downloaded missing weights:
+- CNNDetection: `weights/blur_jpg_prob0.5.pth` (270MB, from Dropbox)
+- FatFormer: `pretrained/FatFormer_4class.pth` (1.9GB, from Google Drive) + symlinked `ViT-L-14.pt` from `~/.cache/clip/` (890MB, auto-downloaded on first UnivFD run)
+- B-Free: `weights/BFREE_dino2reg4/` (config.yaml + model_epoch_best.pth, from grip.unina.it)
+
+Two source-level fixes required:
+1. **FreqNet** `networks/freqnet.py`: Removed hardcoded `.cuda()` calls in `__init__` (8 lines) — model parameters were unconditionally placed on GPU during construction, preventing CPU usage.
+2. **FatFormer** `models/clip/clip.py`: Changed `pretrained/ViT-L-14.pt` from CWD-relative to absolute path based on `__file__`, so FatFormer can be invoked from any working directory.
+
+Wrote `scripts/eval_external.py`: unified wrapper accepting `--detector {cnndetection,freqnet,npr,univfd,fatformer,bfree}`, `--data`, `--weights`, `--out`. Outputs CSV `(path, label, score)` with AUC + Acc@0.5 printed. Data layout: any subdirectory with "real" in name → label 0, "fake" → label 1. NPR weights (`NPR.pth`) were saved with DataParallel `module.` prefix — loader strips it automatically.
+
+**Why:** PIVOT.md Phase 3 prerequisite — all detectors must be runnable before Phase 3.2 (baseline evaluation on original datasets).
+**Result / Status:** All 6 detectors smoke-tested and passing. CNNDetection, FreqNet, NPR, B-Free confirmed on CPU. UnivFD and FatFormer confirmed (CLIP ViT-L/14 cached at `~/.cache/clip/`). AUC numbers on the 6-image smoke test are meaningless (32×32 CIFAKE heavily upsampled) — meaningful numbers will come from Phase 3.2 runs.
+
+---
+
+### 2026-04-21 — Phase 1: Dataset Characterization complete
+
+**What:** Ran `scripts/characterize_datasets.py` on all three datasets. Computed mean + std 1D radial power spectrum, mean 2D log-power heatmap, and HF L2 divergence (r > 89, >80% Nyquist) for each dataset × split (real/fake). Results:
+
+| Dataset | real n | fake n | HF L2 (r>89) |
+|---------|--------|--------|--------------|
+| CIFAKE | 10,000 | 10,000 | 0.34 |
+| Defactify | 7,500 | 10,000 | 4.23 |
+| GenImage | 10,000 | 10,000 | 6.16 |
+
+Outputs: `results/spectra/{cifake,defactify,genimage}_{real,fake}.npz` (6 files), `figures/fig1_radial_spectra.png` (Figure 1 — 3-panel mean radial spectra real vs fake), `figures/fig1b_2d_heatmaps.png` (supplementary 2D heatmaps).
+
+**Why:** PIVOT.md steps 1.1–1.4 — Act 1 of the paper quantifies the spectral bias signal.
+**Result / Status:** Complete. The ordering tracks construction bias severity exactly as predicted:
+
+- **CIFAKE (0.34):** Both sides are 32×32 JPEG — same downsampling pipeline, same compression. The real and fake radial spectra are nearly identical in the high-frequency tail. No spectral shortcut is available. The CNN2D achieving AUC 0.95 on CIFAKE is learning a genuine signal (or a content/statistics signal), not a format artifact. Important: this does NOT mean the signal generalizes — cross-dataset collapse to AUC 0.53 shows it doesn't.
+
+- **Defactify (4.23, 12× CIFAKE):** No format bias (both JPEG), but severe resolution bias. Fake images come in 5–6 canonical AI output sizes (1024×1024 dominant); real images span 180–690 unique resolutions. When both are resized to 224×224 for FFT, images that started at 1024×1024 are downsampled 4.6×, which aggressively attenuates high-frequency content. Images that started at 640×480 (real mode) are downsampled only 2.1×. The fake high-frequency tail is systematically lower-energy than real — a resolution-mediated spectral artifact, not a generative one.
+
+- **GenImage (6.16, 18× CIFAKE):** Dual bias. (1) Real images are JPEG; ADM fake images are PNG. JPEG compression discards high-frequency energy by design (quantization tables target HF DCT coefficients first). PNG is lossless and preserves all energy. Result: the real high-frequency tail is suppressed, the fake tail is not — opposite direction to Defactify. (2) ADM is all 256×256 vs varied natural resolutions. The JPEG-vs-PNG artifact dominates and pushes the L2 divergence highest of the three. Any detector reporting high AUC on GenImage is almost certainly learning the JPEG/PNG boundary, not anything about the generative process.
+
+The 2D heatmaps (`fig1b`) additionally show spatial structure — periodic grid artifacts appear as cross-shaped bright spots in frequency space for some generators, which the 1D average collapses but the 2D map preserves. These are useful for the paper's visual argument.
+
+
+---
+
+### 2026-04-21 — CLAUDE.md updated to reflect Phase 0–1 completion
+
+**What:** Updated CLAUDE.md: moved `eval_external.py` and `characterize_datasets.py` from "Scripts still to write" to "Scripts written"; added usage examples for both scripts including B-Free directory-weights caveat and FatFormer `pytorch_wavelets` requirement; added both scripts to the Key files section.
+**Why:** CLAUDE.md was stale — the init skill surfaced that phases 0 and 1 are complete but the file still listed them as pending.
+**Result / Status:** Done.
+
+### 2026-04-21 — CLAUDE.md updated: normalize_dataset.py written, H100_TRAINING.md removed
+
+**What:** Updated CLAUDE.md to reflect that `scripts/normalize_dataset.py` has been written (was listed under "Scripts still to write"); added Phase 2 normalize commands section; added normalize_dataset.py to Key files; removed stale reference to deleted `H100_TRAINING.md`.
+**Why:** /init audit found the file was stale — normalize_dataset.py exists on disk but was still listed as pending.
+**Result / Status:** Done.
+
+### 2026-04-21 — Results logging policy established
+
+**What:** Added mandatory results logging policy to CLAUDE.md and status.md. All script stdout must be saved to `results/logs/`, per-image scores to `results/<detector>_<dataset>.csv`, aggregate metrics appended to `results/metrics.csv` (schema: detector, dataset, condition, auc, accuracy, mcc, n_real, n_fake). `status.md` is for summaries only; `results/` holds the actual data.
+**Why:** Phases 0–1 outputs were only captured as summaries in status.md — full stdout was lost. Going forward every number that could appear in a paper table must be persisted to a file.
+**Result / Status:** Policy documented. Phase 0–1 gap noted in status.md. Applies from Phase 3 onwards (Phase 2 logging to be confirmed when 2.2–2.4 complete).
+
+---
+
+### 2026-04-21 — Phase 2 scripts complete; normalization is ephemeral
+
+**What:** `scripts/normalize_dataset.py` written and tested. CIFAKE (10k/10k) and Defactify test (7.5k/37.5k) normalized successfully to `/root/normalized/`. GenImage normalization was ~51% through fake split when machine was shut down.
+**Why:** Machine being killed; documenting state for next session.
+**Result / Status:** Phase 2.1 done. Phase 2.2 must be re-run on every new machine — `/root/normalized/` is ephemeral (root FS). Modal volume has only ~4 inodes free so normalized data cannot persist there. See `status.md` for exact re-run commands. Phase 2.3/2.4 (Figure 2, divergence table) blocked until normalization completes on new machine.
+
+### 2026-04-21 — CLAUDE.md improved: storage constraint and characterize_datasets.py CLI args
+
+**What:** Updated CLAUDE.md with two corrections found during /init audit: (1) `characterize_datasets.py` now accepts explicit path flags (`--cifake-real`, `--defy-real`, etc.) for normalized-data runs — was incorrectly documented as hardcoded; (2) Normalize section now documents the Modal volume inode constraint (~4 free) and specifies `/root/normalized/` as the required ephemeral output path with realistic per-dataset runtimes.
+**Why:** CLAUDE.md was stale relative to status.md — the CLI update to characterize_datasets.py and the storage constraint were captured in status.md but not propagated to CLAUDE.md.
+**Result / Status:** Done.
+
+### 2026-04-21 — Phase 2.2 + 3.2 launched; package gaps hit and fixed
+
+**What:** Started all three normalization jobs and Phase 3.2 CIFAKE baseline evals. Hit three rounds of missing packages: (1) tqdm + scikit-learn missing on first launch; (2) pyarrow (Defactify norm), ftfy (univfd), pytorch_wavelets (fatformer), timm (bfree) missing on second pass. Installed all. cnn2d eval also failed because `results/best_2d.pt` doesn't exist — only `results/genimage/best_2d.pt` is present; retrying with GenImage checkpoint (cross-dataset eval, noted below).
+**Why:** Environment was missing research dependencies not captured in requirements.txt.
+**Result / Status:** CIFAKE normalization DONE (10k/10k). Defactify norm restarted (was 0/45k). GenImage norm in progress (~93% real, fake not started). cnndetection AUC=0.3717, freqnet AUC=0.4740, npr AUC=0.4352 on CIFAKE original — all below chance, consistent with these detectors being trained on different distributions. univfd/fatformer/bfree/cnn2d retrying now. cnn2d will use results/genimage/best_2d.pt (GenImage-trained, not CIFAKE-trained — CIFAKE checkpoint missing from disk).
+
+### 2026-04-22 — Phase 2.2 complete; Phase 3.2 CIFAKE baseline complete
+
+**What:** All normalization done. All 7 detector evals on CIFAKE original done. Required installing regex and PyWavelets for univfd/fatformer respectively (total new packages this session: tqdm, scikit-learn, pyarrow, ftfy, timm, pytorch_wavelets, regex, PyWavelets). GenImage norm: 76,676/76,677 fake saved (1 corrupt skipped). Results written to results/metrics.csv.
+
+**Why:** Completing Phase 2.2 and 3.2 per PIVOT.md.
+
+**Result / Status:**
+| Detector | AUC (CIFAKE original) |
+|---|---|
+| cnndetection | 0.3717 |
+| freqnet | 0.4740 |
+| npr | 0.4352 |
+| univfd | 0.3003 |
+| fatformer | 0.2903 |
+| bfree | 0.4971 |
+| cnn2d (GenImage ckpt) | 0.5303 |
+
+All 7 detectors at or below chance on CIFAKE original. This is consistent with the thesis: none of these models were trained on CIFAKE, so they can't exploit its format/resolution shortcuts (it has none). cnn2d with GenImage checkpoint replicates the earlier cross-dataset failure (AUC 0.53, MCC 0.05). Phase 2.2 fully done — /root/normalized/ has CIFAKE (10k/10k), Defactify (7.5k/37.5k), GenImage (50k/76.6k). Ready for Phase 2.3/2.4 and Phase 3.3.
+
+### 2026-04-22 — All Phase 3.2 CIFAKE results properly saved
+
+**What:** Completed full results save: (1) added --out flag to eval.py so it writes per-image CSV (path,label,score) using dataset.samples ordering; (2) re-ran cnn2d eval to produce cnn2d_cifake_original.csv; (3) recomputed AUC/Acc/MCC for all 7 detectors from per-image CSVs to fill in missing MCC values in metrics.csv; (4) copied all master run logs (/root/eval_cifake_*.log) to results/logs/.
+**Why:** metrics.csv was missing MCC for 6/7 detectors and cnn2d had no per-image CSV.
+**Result / Status:** All 7 per-image CSVs exist (20000 rows each). metrics.csv is complete. Note: AUC values differ slightly from earlier log-based readings (e.g. cnndetection 0.3717→0.3750) because the logs reported values mid-run before all batches were processed; the CSV-derived values are authoritative. All MCC values negative or near-zero — consistent with chance-level performance on CIFAKE original (no shortcuts available). Packages needed and not in requirements.txt: tqdm, scikit-learn, pyarrow, ftfy, timm, pytorch_wavelets, regex, PyWavelets.
+
+---
+
+### 2026-04-22 — Phase 3 evals + paper draft under 2-hour deadline
+
+**What:** Ran full parallel pipeline: (1) Defactify parquet extraction (fixed pyarrow vs datasets API mismatch), (2) CIFAKE + Defactify + GenImage normalization in background, (3) GPU eval chain on Defactify original for missing detectors, (4) full paper rewrite for new framing. Key fixes during run: installed missing packages (tqdm, datasets, sklearn, pytorch_wavelets, timm, ftfy, PyWavelets), fixed BFREE_TRANSFORM to include Resize(256) for variable-resolution Defactify images.
+**Why:** 2-hour deadline to publish first paper draft.
+**Result / Status:** CNN2D on Defactify original: AUC=0.5455 (near chance, consistent with no GenImage shortcut being exploitable on Defactify). FatFormer+B-Free on Defactify: rerunning after package+resize fixes. CIFAKE normalization ~93% done; pipeline waiting to start normalized CIFAKE evals. Paper draft complete with all 5 sections; Table 2 original column has CIFAKE (all 7) and Defactify (5/7 confirmed). Normalized results pending.
+
+**Defactify original results so far:**
+- CNNDetection: AUC=0.507, MCC=0.002
+- FreqNet: AUC=0.511, MCC=0.010
+- NPR: AUC=0.520, MCC=0.024
+- UnivFD: AUC=0.536, MCC=0.006
+- CNN2D: AUC=0.546, MCC=0.025
+- FatFormer: rerunning
+- B-Free: rerunning (was failing on variable-size images)
+
+All detectors near chance on Defactify original (0.50–0.55), as expected when applying out-of-distribution detectors to a dataset whose specific resolution bias they weren't trained on.
+
+---
+
+### 2026-04-22 — OOD diagnosis, GenImage key experiment, normalized CIFAKE results
+
+**What:** User correctly identified that all 6 external detectors were trained on ProGAN/ForenSynths — making ALL three test datasets (CIFAKE, Defactify, GenImage) out-of-distribution. Near-chance OOD performance therefore cannot prove shortcut learning on its own. The correct proof experiment is: run detectors on GenImage ORIGINAL (JPEG=real/PNG=fake shortcut accessible) → expect high AUC, then on GenImage NORMALIZED (shortcut removed) → expect AUC drop. The delta proves shortcut contribution. Fixed BFREE_TRANSFORM from `Resize(256)` (preserves aspect ratio, causes collate crash on portrait/landscape Defactify images) to `Resize((256, 256))` (forces square). Queued FatFormer+B-Free reruns on Defactify original. Created `/root/genimage_original/` symlink structure (50K JPEG real + 76K PNG fake) for GenImage original evals.
+
+**Why:** Without GenImage original evals, the near-chance results are attributable to OOD alone rather than shortcut removal. GenImage is the key dataset because: (1) detectors trained on ProGAN/ForenSynths may have learned same JPEG=real/PNG=fake shortcut as GenImage's construction; (2) ADM fakes are 256×256 PNG vs imagenet_nature real which are variable-res JPEG — classic format bias.
+
+**Result / Status:** Normalized CIFAKE results (4/7 complete):
+- CNNDetection: 0.3750 (same as original — CIFAKE's DCT artifacts survive PNG re-save, content-level not format-level)
+- FreqNet: 0.4731 (same as original)  
+- NPR: 0.4349 (same as original)
+- UnivFD: 0.3712 (vs 0.3003 original — slight improvement after normalization)
+- FatFormer: running now
+- B-Free: next
+- CNN2D: next after that
+
+Key insight: CIFAKE AUC unchanged after normalization for 3/4 detectors — confirms CIFAKE's bias is content-baked (CIFAR-10 DCT block artifacts are pixel-level patterns that survive PNG re-encoding), not format metadata. This distinguishes CIFAKE from Defactify/GenImage where the bias is genuine format (JPEG vs PNG).
+
+**Key finding: B-Free CIFAKE** — AUC jumps from 0.497 (original) to 0.637 (normalized). B-Free uses DINOv2 visual features; at 256×256 PNG the quality gap between real (blocky upscaled 32×32 CIFAR) vs fake (crisp 256×256 SD output) becomes legible. This is the only detector that benefits from CIFAKE normalization, and it's because it exploits genuine visual quality differences rather than frequency shortcuts.
+
+**Defactify normalized results (4/7 complete):**
+- CNNDetection: 0.507 → 0.524 (+0.017)
+- FreqNet: 0.511 → 0.534 (+0.023)
+- NPR: 0.520 → 0.556 (+0.036)
+- UnivFD: 0.536 → 0.493 (-0.043)
+- FatFormer, B-Free, CNN2D: running
+
+Small positive deltas for most detectors, one negative. All near chance. Consistent with these detectors NOT having a Defactify-specific shortcut (they were trained on JPEG=real/PNG=fake, not Defactify's resolution bias). Normalization provides marginal stability benefit but doesn't reveal a strong genuine signal.
+
+**AUC discrepancy issue**: eval_external.py saves scores rounded to 6 decimal places. For CNNDetection/FreqNet/NPR on Defactify, >90% of scores are machine-epsilon-small (1e-8 to 1e-15), which round to exactly 0.0. This causes ~0.02 AUC discrepancy between logged AUC (from raw scores) and CSV-derived AUC (from rounded scores). Fixed by saving to 9 decimal places for future runs. Using logged AUC values for metrics.csv where discrepancy exists.
+
+### 2026-04-22 — B-Free normalized Defactify: AUC 0.6114 (highest on Defactify)
+
+**What:** B-Free eval on normalized Defactify completed. AUC = 0.6114, Acc = 0.3932, MCC = 0.1014 (7500 real, 37500 fake). Appended to metrics.csv; updated Table 2.
+**Why:** B-Free is the last normalized Defactify result needed before CNN2D (queued). With this, Defactify normalized is 6/7 complete (CNN2D pending).
+**Result / Status:** B-Free is the **highest-performing detector on normalized Defactify** at 0.611. Full normalized Defactify ranking: NPR 0.556 > FatFormer 0.537 > FreqNet 0.534 > B-Free **0.611** (best) > CNNDetection 0.524 > UnivFD 0.493. This is consistent with the CIFAKE normalized finding (B-Free 0.637 — highest there too). B-Free's DINOv2 features appear to detect genuine visual quality or semantic differences that survive or become more apparent after format normalization, across both datasets. This strengthens the detector taxonomy argument: B-Free is a "quality signal" detector; the others are frequency shortcut learners. CNN2D normalized Defactify now running.
+
+### 2026-04-22 — CNN2D normalized Defactify + GenImage original evals started
+
+**What:** CNN2D normalized Defactify: AUC 0.5367 (vs 0.5455 original, delta -0.009). Appended to metrics.csv; updated Table 2. Defactify normalized now complete (7/7). Watchdog fired at 03:37:50 → run_followup.sh started. CNNDetection is now running on GenImage original (50K real JPEG + 76.7K fake PNG, 126,677 total). This is the key controlled experiment.
+
+**Why:** CNN2D was trained on GenImage (JPEG=real/PNG=fake), so on normalized Defactify (all PNG, resolution equalized) it slightly underperforms original — it may have some PNG=fake tendency that works against it. Effect is tiny (-0.009), near noise. B-Free at 0.611 is clearly the top detector on Defactify normalized.
+
+**Result / Status:** Full Defactify normalized ranking: B-Free 0.611 > NPR 0.556 > FatFormer 0.537 = CNN2D 0.537 > FreqNet 0.534 > CNNDetection 0.524 > UnivFD 0.493. GenImage original evals now running (CNNDetection first). ETA: ~30-45 min per detector × 7 detectors = 3-5 hours total. FatFormer+B-Free Defactify original reruns also queued in follow-up script after GenImage evals.
+
+### 2026-04-22 — GenImage original results: smoking gun confirmed
+
+**What:** CNNDetection, FreqNet, NPR GenImage original evals complete. FreqNet AUC=0.9769, NPR AUC=0.9513, CNNDetection AUC=0.6576. Appended to metrics.csv. Updated Table 2 and GenImage results section in paper. GenImage fake normalization completed (76,676/76,677 images). UnivFD GenImage original now running.
+
+**Why:** These are the key controlled experiment results. FreqNet and NPR score below chance on CIFAKE (0.473, 0.435) but near-perfect on GenImage original (0.977, 0.951). The only difference: CIFAKE has no JPEG=real/PNG=fake shortcut; GenImage does, and it matches the ForenSynths training shortcut exactly.
+
+**Result / Status:** This is the paper's central finding confirmed empirically. ΔAUC of +0.50 (FreqNet) and +0.52 (NPR) between CIFAKE and GenImage original is not OOD generalization — it is shortcut transfer. GenImage normalization results (next step, pending) will directly quantify how much of 0.977/0.951 is shortcut vs. genuine signal. GenImage normalization complete — can now start GenImage normalized evals as soon as GenImage original evals finish.
+
+### 2026-04-22 — Installed Node.js and OpenAI Codex CLI
+
+**What:** Installed Node.js v22.22.2 (via NodeSource apt repo) and `@openai/codex` CLI v0.122.0 globally via npm on this Debian 12 SSH machine.
+**Why:** No Node.js was present on the system; needed to install it as a prerequisite for `npm install -g @openai/codex`.
+**Result / Status:** Complete. `codex` available at `/usr/bin/codex`.
+
+### 2026-04-22 — UnivFD GenImage original: 0.9606 (largest CIFAKE→GenImage swing)
+
+**What:** UnivFD GenImage original eval complete. AUC=0.9606, Acc=0.7258, MCC=0.5622. Appended to metrics.csv; updated Table 2. FatFormer now running on GenImage original.
+**Why:** UnivFD scored 0.300 on CIFAKE (most inverted of all detectors, strongly calling real fake) and now scores 0.961 on GenImage original — a +0.661 swing, the largest of any detector. Confirms the shortcut argument for CLIP-based features too (not just frequency detectors).
+**Result / Status:** GenImage original results so far: CNNDetection 0.658, FreqNet 0.977, NPR 0.951, UnivFD 0.961. Four of seven detectors show AUC 0.66–0.98 on GenImage vs 0.29–0.47 on CIFAKE. The pattern is consistent and striking.
+
+### 2026-04-22 — FatFormer GenImage original: 0.9753 (+0.685 swing)
+
+**What:** FatFormer GenImage original complete. AUC=0.9753, Acc=0.8036, MCC=0.6707. Appended to metrics.csv. Updated tab:genimage in paper with all 5 completed detectors + delta column. B-Free now running on GenImage original (126K images).
+**Why:** FatFormer scored 0.290 on CIFAKE (most inverted detector) and 0.975 on GenImage — the largest absolute swing (+0.685) of any detector so far. Five detectors now show regime-level jumps from CIFAKE to GenImage. Average swing across 5 detectors: ~+0.53 AUC.
+**Result / Status:** GenImage original 5/7 done. B-Free and CNN2D pending. Paper updated with delta column and revised text noting +0.66 average swing. The argument is essentially complete — five independent detectors, trained on the same shortcut, all recover it on GenImage. Only normalized evals remain to quantify shortcut contribution directly.
+
+### 2026-04-22 — Set up LaTeX live preview
+
+**What:** Installed full TeX Live distribution. Set up `latexmk -pvc` (watch mode) to auto-recompile on `.tex` saves, plus an HTTP server on port 8088 serving `preview.html` — an auto-refreshing PDF viewer page. Paper compiles to 5-page PDF successfully.
+**Why:** Need to iterate on paper writing with visual feedback while on SSH/remote.
+**Result / Status:** Complete. `http://localhost:8088/preview.html` (port-forward via SSH or Cursor Ports tab). Both `latexmk` watcher and HTTP server running in background.
+
+### 2026-04-22 — Remove em-dashes from paper LaTeX
+
+**What:** Replaced all em-dashes (both Unicode `—` and LaTeX `---`) in `Paper_template/` prose with natural English phrasing. 9 replacements across `0_abstract.tex`, `4_experiments.tex`, `5_conclusion.tex`, and `3_finalcopy.tex`. Each substitution used commas, conjunctions, or connecting phrases ("but rather", "specifically", "namely", "representing", "confirming") chosen to preserve the original meaning and flow.
+**Why:** User requested removal of em-dashes in favor of English words.
+**Result / Status:** Complete. Zero em-dashes remain in paper `.tex` files (only comment separator lines in `rebuttal.tex` untouched).

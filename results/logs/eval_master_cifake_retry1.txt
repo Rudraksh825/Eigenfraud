@@ -1,0 +1,93 @@
+[Tue Apr 21 18:37:30 UTC 2026] Retrying: univfd, fatformer, bfree, cnn2d
+[Tue Apr 21 18:37:30 UTC 2026] --- univfd ---
+/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/models/clip/clip.py:6: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import packaging
+Detector : univfd
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/pretrained_weights/fc_weights.pth
+Data     : data/raw/cifake/test
+Device   : cuda
+Loading model...
+Traceback (most recent call last):
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/scripts/eval_external.py", line 346, in <module>
+    main()
+    ~~~~^^
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/scripts/eval_external.py", line 307, in main
+    model, transform = LOADERS[args.detector](weights)
+                       ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/scripts/eval_external.py", line 191, in load_univfd
+    from models import get_model
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/models/__init__.py", line 1, in <module>
+    from .clip_models import CLIPModel
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/models/clip_models.py", line 1, in <module>
+    from .clip import clip
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/models/clip/__init__.py", line 1, in <module>
+    from .clip import *
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/models/clip/clip.py", line 14, in <module>
+    from .simple_tokenizer import SimpleTokenizer as _Tokenizer
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/models/clip/simple_tokenizer.py", line 7, in <module>
+    import regex as re
+ModuleNotFoundError: No module named 'regex'
+[Tue Apr 21 18:37:37 UTC 2026] --- fatformer ---
+/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/models/clip/clip.py:6: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import packaging
+Detector : fatformer
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/pretrained/FatFormer_4class.pth
+Data     : data/raw/cifake/test
+Device   : cuda
+Loading model...
+Traceback (most recent call last):
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/scripts/eval_external.py", line 346, in <module>
+    main()
+    ~~~~^^
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/scripts/eval_external.py", line 307, in main
+    model, transform = LOADERS[args.detector](weights)
+                       ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/scripts/eval_external.py", line 201, in load_fatformer
+    from models import build_model
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/models/__init__.py", line 1, in <module>
+    from .clip_models import CLIPModel
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/models/clip_models.py", line 4, in <module>
+    from .clip import clip
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/models/clip/__init__.py", line 1, in <module>
+    from .clip import *
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/models/clip/clip.py", line 13, in <module>
+    from .model import build_model
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/models/clip/model.py", line 9, in <module>
+    from pytorch_wavelets import DWTForward, DWTInverse
+  File "/usr/local/lib/python3.13/site-packages/pytorch_wavelets/__init__.py", line 22, in <module>
+    from pytorch_wavelets.dtcwt.transform2d import DTCWTForward, DTCWTInverse
+  File "/usr/local/lib/python3.13/site-packages/pytorch_wavelets/dtcwt/transform2d.py", line 7, in <module>
+    from pytorch_wavelets.dtcwt.transform_funcs import FWD_J1, FWD_J2PLUS
+  File "/usr/local/lib/python3.13/site-packages/pytorch_wavelets/dtcwt/transform_funcs.py", line 7, in <module>
+    from pytorch_wavelets.dwt.lowlevel import int_to_mode
+  File "/usr/local/lib/python3.13/site-packages/pytorch_wavelets/dwt/lowlevel.py", line 6, in <module>
+    import pywt
+ModuleNotFoundError: No module named 'pywt'
+[Tue Apr 21 18:37:44 UTC 2026] --- bfree ---
+Detector : bfree
+Weights  : detectors/B-Free/code/weights/BFREE_dino2reg4
+Data     : data/raw/cifake/test
+Device   : cuda
+Loading model...
+Images   : 20000 (10000 real, 10000 fake)
+Running inference...
+
+AUC      : 0.4971
+Acc@0.5  : 0.5007
+Saved    : results/bfree_cifake_original.csv  (20000 rows)
+[Tue Apr 21 18:49:33 UTC 2026] --- cnn2d (genimage checkpoint) ---
+Eval 2D:   0%|          | 0/313 [00:00<?, ?batch/s]Dataset: {'real': 10000, 'fake': 10000}
+Using all samples: 20000
+Eval 2D:   0%|          | 1/313 [00:00<05:05,  1.02batch/s]Eval 2D:   1%|▏         | 4/313 [00:01<01:05,  4.68batch/s]Eval 2D:   2%|▏         | 7/313 [00:01<00:35,  8.52batch/s]Eval 2D:   3%|▎         | 10/313 [00:01<00:25, 11.98batch/s]Eval 2D:   4%|▍         | 13/313 [00:01<00:19, 15.27batch/s]Eval 2D:   5%|▌         | 16/313 [00:01<00:18, 16.46batch/s]Eval 2D:   6%|▌         | 19/313 [00:01<00:18, 16.12batch/s]Eval 2D:   7%|▋         | 22/313 [00:01<00:18, 16.15batch/s]Eval 2D:   8%|▊         | 25/313 [00:02<00:15, 18.53batch/s]Eval 2D:   9%|▉         | 28/313 [00:02<00:16, 17.64batch/s]Eval 2D:  10%|▉         | 30/313 [00:02<00:17, 16.55batch/s]Eval 2D:  11%|█         | 33/313 [00:02<00:14, 19.05batch/s]Eval 2D:  12%|█▏        | 36/313 [00:02<00:15, 17.84batch/s]Eval 2D:  12%|█▏        | 38/313 [00:02<00:16, 16.82batch/s]Eval 2D:  13%|█▎        | 41/313 [00:02<00:14, 19.04batch/s]Eval 2D:  14%|█▍        | 44/313 [00:03<00:15, 17.70batch/s]Eval 2D:  15%|█▍        | 46/313 [00:03<00:15, 17.15batch/s]Eval 2D:  16%|█▌        | 49/313 [00:03<00:14, 18.79batch/s]Eval 2D:  16%|█▋        | 51/313 [00:03<00:15, 17.09batch/s]Eval 2D:  17%|█▋        | 54/313 [00:03<00:14, 17.59batch/s]Eval 2D:  18%|█▊        | 57/313 [00:03<00:13, 19.42batch/s]Eval 2D:  19%|█▉        | 59/313 [00:03<00:14, 17.82batch/s]Eval 2D:  19%|█▉        | 61/313 [00:04<00:17, 14.03batch/s]Eval 2D:  20%|██        | 63/313 [00:04<00:19, 13.12batch/s]Eval 2D:  21%|██        | 66/313 [00:04<00:17, 13.93batch/s]Eval 2D:  22%|██▏       | 69/313 [00:04<00:14, 17.03batch/s]Eval 2D:  23%|██▎       | 71/313 [00:04<00:15, 15.84batch/s]Eval 2D:  24%|██▎       | 74/313 [00:05<00:14, 16.04batch/s]Eval 2D:  25%|██▍       | 77/313 [00:05<00:12, 18.57batch/s]Eval 2D:  26%|██▌       | 80/313 [00:05<00:13, 17.56batch/s]Eval 2D:  26%|██▌       | 82/313 [00:05<00:13, 16.52batch/s]Eval 2D:  27%|██▋       | 85/313 [00:05<00:12, 18.79batch/s]Eval 2D:  28%|██▊       | 87/313 [00:05<00:13, 16.75batch/s]Eval 2D:  29%|██▉       | 90/313 [00:05<00:12, 17.27batch/s]Eval 2D:  30%|██▉       | 93/313 [00:06<00:11, 18.89batch/s]Eval 2D:  30%|███       | 95/313 [00:06<00:13, 16.67batch/s]Eval 2D:  31%|███▏      | 98/313 [00:06<00:12, 17.31batch/s]Eval 2D:  32%|███▏      | 100/313 [00:06<00:12, 17.74batch/s]Eval 2D:  33%|███▎      | 102/313 [00:06<00:11, 17.82batch/s]Eval 2D:  33%|███▎      | 104/313 [00:06<00:11, 18.05batch/s]Eval 2D:  34%|███▍      | 106/313 [00:06<00:11, 18.44batch/s]Eval 2D:  35%|███▍      | 108/313 [00:06<00:11, 18.01batch/s]Eval 2D:  35%|███▌      | 111/313 [00:07<00:11, 17.14batch/s]Eval 2D:  36%|███▋      | 114/313 [00:07<00:10, 18.99batch/s]Eval 2D:  37%|███▋      | 116/313 [00:07<00:10, 18.49batch/s]Eval 2D:  38%|███▊      | 119/313 [00:07<00:11, 17.51batch/s]Eval 2D:  39%|███▉      | 122/313 [00:07<00:09, 20.16batch/s]Eval 2D:  40%|███▉      | 125/313 [00:07<00:09, 19.14batch/s]Eval 2D:  41%|████      | 128/313 [00:07<00:10, 18.23batch/s]Eval 2D:  42%|████▏     | 131/313 [00:08<00:10, 17.42batch/s]Eval 2D:  43%|████▎     | 135/313 [00:08<00:10, 17.65batch/s]Eval 2D:  44%|████▍     | 139/313 [00:08<00:09, 17.98batch/s]Eval 2D:  46%|████▌     | 143/313 [00:08<00:09, 17.96batch/s]Eval 2D:  47%|████▋     | 147/313 [00:09<00:09, 17.87batch/s]Eval 2D:  48%|████▊     | 151/313 [00:09<00:11, 14.34batch/s]Eval 2D:  50%|████▉     | 155/313 [00:09<00:10, 15.45batch/s]Eval 2D:  51%|█████     | 159/313 [00:09<00:09, 16.31batch/s]Eval 2D:  52%|█████▏    | 163/313 [00:10<00:08, 16.81batch/s]Eval 2D:  53%|█████▎    | 167/313 [00:10<00:08, 17.40batch/s]Eval 2D:  55%|█████▍    | 171/313 [00:10<00:08, 17.49batch/s]Eval 2D:  56%|█████▌    | 175/313 [00:10<00:07, 17.93batch/s]Eval 2D:  57%|█████▋    | 179/313 [00:10<00:07, 18.23batch/s]Eval 2D:  58%|█████▊    | 183/313 [00:11<00:07, 18.38batch/s]Eval 2D:  60%|█████▉    | 187/313 [00:11<00:06, 18.66batch/s]Eval 2D:  61%|██████    | 191/313 [00:11<00:06, 18.80batch/s]Eval 2D:  62%|██████▏   | 195/313 [00:11<00:06, 19.16batch/s]Eval 2D:  64%|██████▎   | 199/313 [00:11<00:05, 19.27batch/s]Eval 2D:  65%|██████▍   | 203/313 [00:12<00:05, 19.37batch/s]Eval 2D:  66%|██████▌   | 207/313 [00:12<00:05, 19.22batch/s]Eval 2D:  67%|██████▋   | 211/313 [00:12<00:05, 19.18batch/s]Eval 2D:  69%|██████▊   | 215/313 [00:12<00:05, 19.08batch/s]Eval 2D:  70%|██████▉   | 219/313 [00:13<00:04, 19.23batch/s]Eval 2D:  71%|███████   | 223/313 [00:13<00:04, 19.28batch/s]Eval 2D:  73%|███████▎  | 227/313 [00:13<00:04, 19.40batch/s]Eval 2D:  74%|███████▍  | 231/313 [00:13<00:04, 19.50batch/s]Eval 2D:  75%|███████▌  | 235/313 [00:13<00:03, 19.85batch/s]Eval 2D:  76%|███████▋  | 239/313 [00:14<00:03, 19.99batch/s]Eval 2D:  78%|███████▊  | 243/313 [00:14<00:03, 20.14batch/s]Eval 2D:  79%|███████▉  | 247/313 [00:14<00:04, 15.70batch/s]Eval 2D:  80%|████████  | 251/313 [00:14<00:03, 16.68batch/s]Eval 2D:  81%|████████▏ | 255/313 [00:15<00:03, 17.77batch/s]Eval 2D:  83%|████████▎ | 259/313 [00:15<00:02, 18.53batch/s]Eval 2D:  84%|████████▍ | 263/313 [00:15<00:02, 19.02batch/s]Eval 2D:  85%|████████▌ | 267/313 [00:15<00:02, 19.54batch/s]Eval 2D:  87%|████████▋ | 271/313 [00:15<00:02, 19.94batch/s]Eval 2D:  88%|████████▊ | 275/313 [00:15<00:01, 20.00batch/s]Eval 2D:  89%|████████▉ | 279/313 [00:16<00:01, 20.03batch/s]Eval 2D:  90%|█████████ | 283/313 [00:16<00:01, 20.14batch/s]Eval 2D:  92%|█████████▏| 287/313 [00:16<00:01, 20.16batch/s]Eval 2D:  93%|█████████▎| 291/313 [00:16<00:01, 19.99batch/s]Eval 2D:  94%|█████████▍| 295/313 [00:16<00:00, 19.62batch/s]Eval 2D:  96%|█████████▌| 299/313 [00:17<00:00, 19.73batch/s]Eval 2D:  97%|█████████▋| 303/313 [00:17<00:00, 19.74batch/s]Eval 2D:  98%|█████████▊| 307/313 [00:17<00:00, 20.00batch/s]Eval 2D:  99%|█████████▉| 311/313 [00:17<00:00, 20.02batch/s]Eval 2D: 100%|██████████| 313/313 [00:17<00:00, 17.52batch/s]
+
+==================================================
+Checkpoint : results/genimage/best_2d.pt
+Test dir   : data/raw/cifake/test
+Model      : 2D CNN
+==================================================
+AUC        : 0.5303
+Accuracy   : 0.5241
+EER        : 0.4754
+MCC        : 0.0481
+==================================================
+[Tue Apr 21 18:49:56 UTC 2026] Retry evals done.

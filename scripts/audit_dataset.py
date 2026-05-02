@@ -19,6 +19,7 @@ Usage:
 
 import argparse
 import os
+import random
 from collections import Counter
 from pathlib import Path
 
@@ -37,21 +38,26 @@ def fmt_label(suffix: str) -> str:
     return suffix.upper().lstrip(".")
 
 
-def audit_dir(path: Path) -> dict:
+def audit_dir(path: Path, sample: int = 1000) -> dict:
     files = [f for f in path.iterdir() if f.suffix.lower() in IMAGE_EXTS]
     if not files:
         return {"count": 0}
 
+    total = len(files)
+    # Format and size: read from all files via stat (no PIL needed)
     formats = Counter()
-    resolutions = Counter()
     sizes_bytes = []
-
     for f in files:
         formats[fmt_label(f.suffix)] += 1
         sizes_bytes.append(f.stat().st_size)
+
+    # Resolution: sample only
+    sample_files = random.sample(files, min(sample, total))
+    resolutions = Counter()
+    for f in sample_files:
         try:
             with Image.open(f) as img:
-                resolutions[img.size] += 1  # (W, H)
+                resolutions[img.size] += 1
         except Exception:
             pass
 
@@ -59,14 +65,14 @@ def audit_dir(path: Path) -> dict:
     most_common_res, most_common_res_count = resolutions.most_common(1)[0]
 
     return {
-        "count": len(files),
+        "count": total,
         "formats": dict(formats.most_common()),
         "resolution_unique": len(resolutions),
-        "resolution_mode": f"{most_common_res[0]}×{most_common_res[1]} ({most_common_res_count} imgs)",
+        "resolution_mode": f"{most_common_res[0]}×{most_common_res[1]} ({most_common_res_count} imgs, sampled {len(sample_files)})",
         "resolution_all": [f"{w}×{h}" for (w, h), _ in resolutions.most_common(5)],
         "size_kb_min": min(sizes_kb),
         "size_kb_max": max(sizes_kb),
-        "size_kb_mean": sum(sizes_kb) / len(sizes_kb),
+        "size_kb_mean": sum(sizes_kb) / total,
     }
 
 
@@ -101,13 +107,15 @@ def main():
     parser.add_argument("--test-real",  required=True, type=Path)
     parser.add_argument("--test-fake",  required=True, type=Path)
     parser.add_argument("--dataset", default="Dataset")
+    parser.add_argument("--sample", type=int, default=1000,
+                        help="Number of images to sample per split for resolution check")
     args = parser.parse_args()
 
     splits = {
-        "train / REAL": audit_dir(args.train_real),
-        "train / FAKE": audit_dir(args.train_fake),
-        "test  / REAL": audit_dir(args.test_real),
-        "test  / FAKE": audit_dir(args.test_fake),
+        "train / REAL": audit_dir(args.train_real, args.sample),
+        "train / FAKE": audit_dir(args.train_fake, args.sample),
+        "test  / REAL": audit_dir(args.test_real,  args.sample),
+        "test  / FAKE": audit_dir(args.test_fake,  args.sample),
     }
 
     print_table(args.dataset, splits)

@@ -1,0 +1,5 @@
+Detector : fatformer
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/pretrained/FatFormer_4class.pth
+Data     : /root/defactify_original/test
+Device   : cuda
+Loading model...

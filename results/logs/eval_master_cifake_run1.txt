@@ -1,0 +1,129 @@
+[Tue Apr 21 17:52:48 UTC 2026] Starting Phase 3.2 CIFAKE baseline evals
+[Tue Apr 21 17:52:48 UTC 2026] --- cnndetection ---
+Detector : cnndetection
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/CNNDetection/weights/blur_jpg_prob0.5.pth
+Data     : data/raw/cifake/test
+Device   : cuda
+Loading model...
+Images   : 20000 (10000 real, 10000 fake)
+Running inference...
+
+AUC      : 0.3717
+Acc@0.5  : 0.4907
+Saved    : results/cnndetection_cifake_original.csv  (20000 rows)
+[Tue Apr 21 17:55:02 UTC 2026] --- freqnet ---
+Detector : freqnet
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FreqNet-DeepfakeDetection/4-classes-freqnet-v2.pth
+Data     : data/raw/cifake/test
+Device   : cuda
+Loading model...
+Images   : 20000 (10000 real, 10000 fake)
+Running inference...
+
+AUC      : 0.4740
+Acc@0.5  : 0.4600
+Saved    : results/freqnet_cifake_original.csv  (20000 rows)
+[Tue Apr 21 17:55:53 UTC 2026] --- npr ---
+Detector : npr
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/NPR-DeepfakeDetection/NPR.pth
+Data     : data/raw/cifake/test
+Device   : cuda
+Loading model...
+Images   : 20000 (10000 real, 10000 fake)
+Running inference...
+
+AUC      : 0.4352
+Acc@0.5  : 0.4335
+Saved    : results/npr_cifake_original.csv  (20000 rows)
+[Tue Apr 21 17:56:22 UTC 2026] --- univfd ---
+/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/models/clip/clip.py:6: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import packaging
+Detector : univfd
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/pretrained_weights/fc_weights.pth
+Data     : data/raw/cifake/test
+Device   : cuda
+Loading model...
+Traceback (most recent call last):
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/scripts/eval_external.py", line 346, in <module>
+    main()
+    ~~~~^^
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/scripts/eval_external.py", line 307, in main
+    model, transform = LOADERS[args.detector](weights)
+                       ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/scripts/eval_external.py", line 191, in load_univfd
+    from models import get_model
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/models/__init__.py", line 1, in <module>
+    from .clip_models import CLIPModel
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/models/clip_models.py", line 1, in <module>
+    from .clip import clip
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/models/clip/__init__.py", line 1, in <module>
+    from .clip import *
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/models/clip/clip.py", line 14, in <module>
+    from .simple_tokenizer import SimpleTokenizer as _Tokenizer
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/models/clip/simple_tokenizer.py", line 6, in <module>
+    import ftfy
+ModuleNotFoundError: No module named 'ftfy'
+[Tue Apr 21 17:56:30 UTC 2026] --- fatformer ---
+/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/models/clip/clip.py:6: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import packaging
+Detector : fatformer
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/pretrained/FatFormer_4class.pth
+Data     : data/raw/cifake/test
+Device   : cuda
+Loading model...
+Traceback (most recent call last):
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/scripts/eval_external.py", line 346, in <module>
+    main()
+    ~~~~^^
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/scripts/eval_external.py", line 307, in main
+    model, transform = LOADERS[args.detector](weights)
+                       ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/scripts/eval_external.py", line 201, in load_fatformer
+    from models import build_model
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/models/__init__.py", line 1, in <module>
+    from .clip_models import CLIPModel
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/models/clip_models.py", line 4, in <module>
+    from .clip import clip
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/models/clip/__init__.py", line 1, in <module>
+    from .clip import *
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/models/clip/clip.py", line 13, in <module>
+    from .model import build_model
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/models/clip/model.py", line 9, in <module>
+    from pytorch_wavelets import DWTForward, DWTInverse
+ModuleNotFoundError: No module named 'pytorch_wavelets'
+[Tue Apr 21 17:56:36 UTC 2026] --- bfree ---
+Detector : bfree
+Weights  : detectors/B-Free/code/weights/BFREE_dino2reg4
+Data     : data/raw/cifake/test
+Device   : cuda
+Loading model...
+Traceback (most recent call last):
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/scripts/eval_external.py", line 346, in <module>
+    main()
+    ~~~~^^
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/scripts/eval_external.py", line 307, in main
+    model, transform = LOADERS[args.detector](weights)
+                       ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/scripts/eval_external.py", line 228, in load_bfree
+    model = load_weights(get_network(cfg['arch']), str(weights_dir / cfg['weights_file']))
+                         ~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/B-Free/code/networks/__init__.py", line 17, in get_network
+    import timm
+ModuleNotFoundError: No module named 'timm'
+[Tue Apr 21 17:56:43 UTC 2026] --- cnn2d ---
+Traceback (most recent call last):
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/scripts/eval.py", line 132, in <module>
+    main()
+    ~~~~^^
+  File "/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/scripts/eval.py", line 89, in main
+    first_ckpt = torch.load(args.checkpoint[0], map_location=device, weights_only=False)
+  File "/usr/local/lib/python3.13/site-packages/torch/serialization.py", line 1530, in load
+    with _open_file_like(f, "rb") as opened_file:
+         ~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/torch/serialization.py", line 795, in _open_file_like
+    return _open_file(name_or_buffer, mode)
+  File "/usr/local/lib/python3.13/site-packages/torch/serialization.py", line 776, in __init__
+    super().__init__(open(name, mode))  # noqa: SIM115
+                     ~~~~^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'results/best_2d.pt'
+[Tue Apr 21 17:56:47 UTC 2026] All CIFAKE baseline evals done.

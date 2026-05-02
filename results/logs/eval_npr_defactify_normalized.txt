@@ -1,0 +1,11 @@
+Detector : npr
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/NPR-DeepfakeDetection/NPR.pth
+Data     : /root/normalized/defactify/test
+Device   : cuda
+Loading model...
+Images   : 45000 (7500 real, 37500 fake)
+Running inference...
+
+AUC      : 0.5561
+Acc@0.5  : 0.2002
+Saved    : results/npr_defactify_normalized.csv  (45000 rows)

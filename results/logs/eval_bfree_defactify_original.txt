@@ -1,0 +1,7 @@
+Detector : bfree
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/B-Free/code/weights/BFREE_dino2reg4
+Data     : /root/defactify_original/test
+Device   : cuda
+Loading model...
+Images   : 45000 (7500 real, 37500 fake)
+Running inference...

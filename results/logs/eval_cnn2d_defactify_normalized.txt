@@ -1,0 +1,14 @@
+Dataset: {'real': 7500, 'fake': 37500}
+Using all samples: 45000
+Saved    : results/cnn2d_defactify_normalized.csv  (45000 rows)
+
+==================================================
+Checkpoint : results/genimage/best_2d.pt
+Test dir   : /root/normalized/defactify/test
+Model      : 2D CNN
+==================================================
+AUC        : 0.5367
+Accuracy   : 0.3618
+EER        : 0.4761
+MCC        : 0.0499
+==================================================

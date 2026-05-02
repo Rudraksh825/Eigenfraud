@@ -1,0 +1,11 @@
+Detector : univfd
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/pretrained_weights/fc_weights.pth
+Data     : /root/defactify_original/test
+Device   : cuda
+Loading model...
+Images   : 45000 (7500 real, 37500 fake)
+Running inference...
+
+AUC      : 0.5361
+Acc@0.5  : 0.1757
+Saved    : results/univfd_defactify_original.csv  (45000 rows)

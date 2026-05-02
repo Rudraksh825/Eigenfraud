@@ -1,0 +1,14 @@
+Dataset: {'real': 10000, 'fake': 10000}
+Using all samples: 20000
+Saved    : results/cnn2d_cifake_normalized.csv  (20000 rows)
+
+==================================================
+Checkpoint : results/genimage/best_2d.pt
+Test dir   : /root/normalized/cifake/test
+Model      : 2D CNN
+==================================================
+AUC        : 0.4722
+Accuracy   : 0.4860
+EER        : 0.5256
+MCC        : -0.0444
+==================================================
