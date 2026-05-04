@@ -4,14 +4,14 @@
 AI-image detectors often report strong benchmark performance~\cite{wang2020cnn,corvi2023intriguing,ricker2024aeroblade}, but those numbers are difficult to interpret when the benchmark itself leaks the label. If real and fake images differ in file format, compression history, or canonical resolution, then a detector can score well without learning anything about image synthesis. In that case the model is not detecting generation; it is learning the benchmark.
 
 This paper audits that failure mode directly. We study three datasets with very different levels of construction bias:
-\begin{itemize}[itemsep=2pt,topsep=2pt]
+\begin{enumerate}[itemsep=2pt,topsep=2pt]
   \item \textbf{CIFAKE} is close to an artifact-controlled stress test: both classes are $32\times32$ JPEG.
   \item \textbf{Defactify} removes format bias but retains strong resolution bias.
   \item \textbf{GenImage} contains both severe format and resolution bias.
-\end{itemize}
-These artifacts matter because they create shortcuts in exactly the frequency ranges many detectors inspect. A detector can therefore optimize benchmark AUC by exploiting a spurious cue that is easier to learn than generator-specific evidence. We use ``reward hacking'' in that limited sense: a model maximizes the benchmark objective by locking onto dataset construction signals rather than the intended concept.
-
-\paragraph{What we show.}
+\end{enumerate}
+These artifacts matter because they create shortcuts in exactly the frequency ranges many detectors inspect. A detector can therefore optimize benchmark AUC by exploiting a spurious cue that is easier to learn than generator-specific evidence. We use ``reward hacking'' in that limited sense: a model maximizes the benchmark objective by locking onto dataset construction signals rather than the intended concept. 
+\\
+\textbf{What we show.}
 Our results support three concrete claims.
 \begin{enumerate}[itemsep=2pt,topsep=2pt]
   \item \textbf{The benchmark bias is measurable.} The ordering of high-frequency divergence is not subtle: CIFAKE $<\!\!<$ Defactify $<$ GenImage.

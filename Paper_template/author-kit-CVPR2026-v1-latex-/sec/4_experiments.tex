@@ -10,12 +10,12 @@ We evaluate on three benchmarks chosen to span the spectrum of construction arti
 \textbf{GenImage}~\cite{genimage} uses 50k real ImageNet photographs (JPEG, hundreds of unique resolutions) and 76,677 ADM-generated fake images (PNG, uniform $256\times256$) --- simultaneous severe format and resolution bias.
 All six external detectors were trained on ProGAN/ForenSynths~\cite{wang2020cnn}, which has the same JPEG=real/PNG=fake construction as GenImage; all three test sets are therefore out-of-distribution.
 
-\subsection{Act 1: Spectral Bias in the Data}
+\subsection{Spectral Bias in the Data}
 \label{sec:audit}
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\linewidth]{fig1_radial_spectra.png}
+  \includegraphics[width=\linewidth]{figures/fig1_radial_spectra.png}
   \caption{Mean radial log-power spectra for real vs.\ fake splits across all three datasets (original, unmodified data). Shaded regions: $\pm1\sigma$. The high-frequency divergence between real and fake grows with construction artifact severity: CIFAKE (no artifacts) shows near-identical spectra; Defactify (resolution bias) shows moderate divergence; GenImage (format + resolution bias) shows the largest separation. HF L2 divergence values: CIFAKE $=0.34$, Defactify $=4.23$, GenImage $=6.16$.}
   \label{fig:spectra}
 \end{figure}
@@ -37,13 +37,14 @@ GenImage  & \textbf{Severe} & \textbf{Severe} & 6.16 \\
 \end{table}
 Figure~\ref{fig:spectra} and Table~\ref{tab:audit} establish the first part of the story. CIFAKE, the only artifact-controlled benchmark in our set, has almost no spectral separation between real and fake. Defactify shows a much larger gap, and GenImage is larger still. The ordering is exactly what we would expect if format and resolution mismatches are producing easy-to-learn frequency shortcuts before a detector sees any semantic content.
 
-\subsection{Act 2: Detector Performance on Original Benchmarks}
+\subsection{Detector Performance on Original Benchmarks}
 \label{sec:baseline}
 
 \begin{table}[t]
 \centering
 \small
 \setlength{\tabcolsep}{4pt}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{lcccc}
 \toprule
 \textbf{Detector} & \textbf{CIFAKE} & \textbf{CIFAKE-N} & \textbf{Defactify} & \textbf{Defactify-N} \\
@@ -56,7 +57,8 @@ FatFormer~\cite{fatformer}      & 0.290 & 0.290 & --    & 0.537 \\
 B-Free~\cite{bfree}             & 0.497 & \textbf{0.637} & --    & \textbf{0.611} \\
 CNN2D (ours)                    & 0.530 & 0.472 & 0.546 & 0.537 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \caption{Completed AUC results on original and normalized test sets. Normalization converts all images to $256\times256$ PNG. CIFAKE-N and Defactify-N are normalized variants.}
 \label{tab:perf}
 \end{table}
@@ -65,7 +67,7 @@ Table~\ref{tab:perf} contains the central negative result. On CIFAKE, every exte
 
 The contrast with Defactify is also useful. Defactify contains measurable bias, but it is mostly a resolution bias, not the JPEG/PNG pattern that dominates GenImage. The completed detector results stay near chance on both the original and normalized versions of Defactify. This suggests that benchmark success is not driven by \emph{any} artifact in the abstract. It depends on whether the test benchmark reproduces the particular shortcut the detector has learned.
 
-\subsection{Act 2 (cont.): Effect of Normalization}
+\subsection{Effect of Normalization}
 \label{sec:norm_results}
 
 \noindent\textbf{CIFAKE after normalization.}
@@ -77,7 +79,7 @@ B-Free is the only detector that clearly improves after normalization, rising fr
 \noindent\textbf{Interpretation.}
 The normalization results are not a full deconfounding study, but they do separate two behaviors. Most detectors remain shortcut-bound even after re-encoding. B-Free benefits from cleaner inputs. That contrast is useful because it shows the story is not simply ``all detectors fail.'' The more specific result is that most current detectors appear to depend on brittle benchmark cues, while at least one model seems partially sensitive to something more robust.
 
-\subsection{Act 3: Shortcut Transfer on GenImage}
+\subsection{Shortcut Transfer on GenImage}
 \label{sec:genimage_results}
 
 \begin{table}[t]
