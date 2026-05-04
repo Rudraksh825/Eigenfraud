@@ -1,0 +1,13 @@
+/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/models/clip/clip.py:6: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import packaging
+Detector : univfd
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/UniversalFakeDetect/pretrained_weights/fc_weights.pth
+Data     : /root/ablated/defactify/low
+Device   : cuda
+Loading model...
+Images   : 45000 (7500 real, 37500 fake)
+Running inference...
+
+AUC      : 0.4809
+Acc@0.5  : 0.6841
+Saved    : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/results/univfd_defactify_ablated_low.csv  (45000 rows)

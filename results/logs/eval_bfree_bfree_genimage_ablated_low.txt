@@ -1,0 +1,11 @@
+Detector : bfree
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/B-Free/code/weights/BFREE_dino2reg4
+Data     : /root/ablated/genimage/low
+Device   : cuda
+Loading model...
+Images   : 126676 (50000 real, 76676 fake)
+Running inference...
+
+AUC      : 0.5782
+Acc@0.5  : 0.4066
+Saved    : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/results/bfree_genimage_ablated_low.csv  (126676 rows)

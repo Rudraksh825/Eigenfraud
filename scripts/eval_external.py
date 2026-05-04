@@ -295,6 +295,7 @@ def main():
     parser.add_argument('--out', required=True, type=Path,
                         help='Output CSV path (path, label, score)')
     parser.add_argument('--batch-size', type=int, default=32)
+    parser.add_argument('--num-workers', type=int, default=4)
     parser.add_argument('--device', default='cuda' if torch.cuda.is_available() else 'cpu')
     args = parser.parse_args()
 
@@ -322,7 +323,7 @@ def main():
     dataset = ImageListDataset(samples, transform)
     loader = DataLoader(
         dataset, batch_size=batch_size, shuffle=False,
-        num_workers=4, collate_fn=ImageListDataset.collate,
+        num_workers=args.num_workers, collate_fn=ImageListDataset.collate,
     )
 
     print("Running inference...")

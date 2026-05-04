@@ -1,0 +1,11 @@
+Detector : npr
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/NPR-DeepfakeDetection/NPR.pth
+Data     : /root/swapped/genimage
+Device   : cuda
+Loading model...
+Images   : 126676 (50000 real, 76676 fake)
+Running inference...
+
+AUC      : 0.2989
+Acc@0.5  : 0.3696
+Saved    : results/npr_genimage_format_swapped.csv  (126676 rows)

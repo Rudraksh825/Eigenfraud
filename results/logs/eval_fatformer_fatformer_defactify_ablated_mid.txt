@@ -1,0 +1,15 @@
+/__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/models/clip/clip.py:6: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import packaging
+Detector : fatformer
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FatFormer/pretrained/FatFormer_4class.pth
+Data     : /root/ablated/defactify/mid
+Device   : cuda
+Loading model...
+Initial context: "X X X X X X X X"
+Number of context words (tokens): 8
+Images   : 45000 (7500 real, 37500 fake)
+Running inference...
+
+AUC      : 0.4370
+Acc@0.5  : 0.7542
+Saved    : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/results/fatformer_defactify_ablated_mid.csv  (45000 rows)

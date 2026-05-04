@@ -1,0 +1,11 @@
+Detector : freqnet
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FreqNet-DeepfakeDetection/4-classes-freqnet-v2.pth
+Data     : /root/ablated/defactify/low
+Device   : cuda
+Loading model...
+Images   : 45000 (7500 real, 37500 fake)
+Running inference...
+
+AUC      : 0.4508
+Acc@0.5  : 0.2217
+Saved    : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/results/freqnet_defactify_ablated_low.csv  (45000 rows)

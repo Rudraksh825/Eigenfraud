@@ -4,6 +4,93 @@ This journal logs every decision, implementation, result, discussion, and conclu
 
 ---
 
+### 2026-05-03 — CLAUDE.md accuracy pass via /init
+
+**What:** Three targeted fixes to CLAUDE.md: (1) corrected `pip install` path from nonexistent root `requirements.txt` to `Rud MDs/requirements.txt`; (2) added `run_ablation_pipeline.py` to Scripts, Commands (Band ablation section), and Key files — it was completely missing despite being the main Phase 4 automation tool; (3) updated Phase 4 status row to reflect that all ablated CSVs (CIFAKE + Defactify × 3 bands × all detectors) are now generated.
+**Why:** `run_ablation_pipeline.py` automates what would otherwise be 36+ manual eval runs and auto-populates metrics.csv; omitting it means future Claude instances would manually run band_ablation.py + eval_external.py in a loop instead of using the pipeline. The requirements.txt path was a broken command. Phase 4 status was one day stale.
+**Result / Status:** Complete.
+
+---
+
+### 2026-05-02 — CLAUDE.md accuracy pass via /init
+
+**What:** Second CLAUDE.md review via `/init`. Updated Phase 4 status to reflect actual progress: Defactify ablation evals complete (all 3 bands, logs in `results/logs/ablate_defactify_*_evals.txt`), CIFAKE image gen done but evals partial, GenImage image gen incomplete. Added Phase 4b row for format-swap (data generated, eval incomplete). Added `format_swapped` to `condition` values in metrics.csv schema. Fixed metrics.csv row count (43, not 45). Noted that `cnn2d,genimage,original` row is absent. Added `setup_genimage*.sh` scripts to key files list.
+**Why:** Several stale facts had accumulated since the last CLAUDE.md update — phase status, row count, missing condition value, undocumented scripts.
+**Result / Status:** Complete.
+
+---
+
+### 2026-05-02 — CLAUDE.md updated with missing scripts and corrections
+
+**What:** Updated `CLAUDE.md` via `/init` review. Added `scripts/format_swap.py` and `scripts/trivial_baseline.py` (both existing but undocumented). Fixed checkpoint paths (`results/best_2d.pt` → `results/cifake/best_2d.pt`). Fixed intro text ("three external ones" → "six external ones"). Added format_baseline GenImage AUC=1.000 to key findings. Updated Phase 4 status to reflect that CIFAKE+Defactify ablated image dirs were generated. Added Commands sections for format_swap and trivial_baseline.
+**Why:** Auditing codebase revealed gaps between actual scripts on disk and what was documented.
+**Result / Status:** Complete.
+
+---
+
+### 2026-05-02 — GenImage ablation deferred to GPU session
+
+**What:** Stopped GenImage band ablation. User will spin up an H100 for the next session to handle GenImage ablation (3 bands × 126k images) and the subsequent eval runs (6 detectors × 3 bands × 126k images each).
+
+Band_ablation.py was parallelized with ThreadPoolExecutor (same pattern as normalize_dataset.py) — use `--workers 16` on the GPU instance.
+
+**What's done and persisted on Modal volume:**
+- `/root/normalized/genimage/` — 50000 real + 76676 fake (256×256 PNG) ← **ephemeral, re-run on new machine**
+- `/root/swapped/genimage/` — 50000 real (PNG) + 76676 fake (JPEG) ← **ephemeral, re-run on new machine**
+- All CIFAKE ablated dirs (`/root/ablated/cifake/{low,mid,high}`) ← **ephemeral**
+- All Defactify ablated dirs (`/root/ablated/defactify/{low,mid,high}`) ← **ephemeral**
+- Defactify eval chains (low/mid/high) running in background
+- CIFAKE ablation eval chain running (waiting for freqnet then npr/univfd/fatformer/bfree/cnn2d × 3 bands)
+- cnndetection re-run on CIFAKE ablated_low (num_workers=0) running in background
+
+**Why:** GenImage ablation on CPU would take ~7 hours; GPU would reduce to ~15-30 minutes. User will resume on H100.
+
+**Result / Status:** GenImage ablation deferred. Session ending.
+
+---
+
+### 2026-05-02 — Full ablation eval pipeline launched; GPU question answered
+
+**What:** Launched all remaining eval chains as background processes:
+- FreqNet on CIFAKE ablated_low (PID 18534, ~40 min runtime, still running)
+- CIFAKE ablation eval chain (PID 25696): waits for freqnet, then runs npr/univfd/fatformer/bfree/cnn2d for low, then all 7 detectors for mid/high
+- Defactify ablation eval chains: low (PID 24838), mid (PID 24981), high (PID 24982) — all 3 bands running in parallel with 7 detectors each
+- Format-swap eval chain (PID 25851): waits for /root/swapped/genimage to complete, then runs 6 detectors
+- GenImage ablation+eval chain (PID 25925): waits for normalization, then ablates 3 bands and evaluates
+
+Investigated cnndetection 14867-row bug: with 1TB RAM available, memory is not the cause. All 10000 fake images load fine sequentially. DataLoader test with num_workers=4 returns all 20000 rows. Cause unknown — may be a transient issue during the specific run.
+
+GPU answer: An H100 would reduce eval time from ~8-15 hours total to ~30-90 minutes. Normalization and ablation are CPU/PIL-bound and wouldn't benefit.
+
+**Why:** All ablation prerequisites (CIFAKE/Defactify ablated dirs 10000+10000 and 7500+37500 for 3 bands each) are complete. Launching evals now to use available CPU (17 cores, 1TB RAM).
+
+**Result / Status:** All chains launched. Expected to complete over the next 2-8 hours depending on CPU availability.
+
+---
+
+### 2026-05-02 — Three novelty experiments designed and launched
+
+**What:** Identified that current paper is observational and lacks causal evidence. Designed three experiments to establish genuine novel contributions: (1) trivial format baseline, (2) format-swap causal test, (3) band ablation. Wrote `scripts/trivial_baseline.py` and `scripts/format_swap.py`. Added `--workers` parallel threading to both `normalize_dataset.py` and `format_swap.py` after discovering Modal volume I/O is ~20x slower than expected (2-3 it/s vs expected 3-4 it/s for 32×32 images).
+
+**Why:** The paper as-is shows correlation between format bias and detector failure. To claim causation — and to be genuinely novel against Grommelt et al. and the broader shortcut-learning literature — we need a controlled causal experiment (format-swap) and a trivial baseline that proves the bar is low.
+
+**Result / Status:** Trivial baseline complete for all three datasets:
+- CIFAKE: AUC=0.5000 (both classes JPEG — confirms no format shortcut)
+- Defactify: AUC=0.5000 (both classes JPEG — confirms no format shortcut)
+- GenImage: AUC=**1.0000** (real=JPEG, fake=PNG — perfect separation from file extension alone)
+
+Format-swap (GenImage, 16 workers) and CIFAKE normalization (16 workers) running in background. Band ablation blocked on normalization completing. Results appended to `results/metrics.csv` (now 46 rows).
+
+---
+
+### 2026-05-02 — CLAUDE.md updated via /init
+
+**What:** Ran `/init` skill. Updated CLAUDE.md to reflect current project state: (1) corrected phase status table — Phases 2, 3.2, 3.3 are now complete; Phases 5–6 are in-progress with a paper draft written; Phase 4 script is done but evals not yet run; (2) removed stale "Scripts still to write" section since `band_ablation.py` exists; (3) added `band_ablation.py` to Scripts written and Key files; (4) expanded Key experimental findings with normalized results summary (GenImage barely changes ≤0.02, B-Free CIFAKE improves +0.14, CNN2D drops); (5) added Band ablation commands section; (6) added paper draft location to Key files.
+**Why:** CLAUDE.md was last updated 2026-04-22 before normalized evals and band_ablation.py were completed. New instances were getting a misleading picture of the project state.
+**Result / Status:** CLAUDE.md updated. No code changed.
+
+---
+
 ### 2026-04-22 — ALL EVALS COMPLETE; B-Free GenImage-N = 0.9194 (Δ=0.000)
 
 **What:** B-Free GenImage normalized finished at 08:58. AUC = 0.9194, identical to original (Δ = 0.000 to 4 decimal places). All GenImage normalized evals now complete. Updated tab:genimage and Act 3 narrative. metrics.csv has 42 data rows — all experiments done.
@@ -941,3 +1028,77 @@ Small positive deltas for most detectors, one negative. All near chance. Consist
 **What:** Replaced all em-dashes (both Unicode `—` and LaTeX `---`) in `Paper_template/` prose with natural English phrasing. 9 replacements across `0_abstract.tex`, `4_experiments.tex`, `5_conclusion.tex`, and `3_finalcopy.tex`. Each substitution used commas, conjunctions, or connecting phrases ("but rather", "specifically", "namely", "representing", "confirming") chosen to preserve the original meaning and flow.
 **Why:** User requested removal of em-dashes in favor of English words.
 **Result / Status:** Complete. Zero em-dashes remain in paper `.tex` files (only comment separator lines in `rebuttal.tex` untouched).
+
+---
+
+### 2026-05-03 — Band ablation pipeline: progress and GenImage handoff notes
+
+**What:** Ran `scripts/run_ablation_pipeline.py` on H100. Pipeline was stopped deliberately before GenImage to allow a fresh session. Status at stop:
+- CIFAKE: all 3 bands complete (21 rows in metrics.csv). One corrupted pre-existing CSV (`cnndetection_cifake_ablated_low.csv`, n_fake=4867 from a previous partial run) was detected, re-run fresh, and corrected in metrics.csv (AUC=0.5209, n_fake=10000).
+- Defactify: normalize done, ablated_low complete (7 detectors), ablated_mid in progress at time of stop.
+- GenImage: not started.
+
+**To resume GenImage in a fresh session:**
+```bash
+# 1. Install deps (fresh machine won't have them)
+pip install pandas scikit-learn pillow tqdm torch torchvision numpy pyarrow timm ftfy regex
+pip install git+https://github.com/openai/CLIP.git PyWavelets pytorch_wavelets
+
+# 2. If Defactify ablated_mid/high dirs are partial, delete them first
+rm -rf /root/ablated/defactify/mid /root/ablated/defactify/high
+
+# 3. Resume — skip-existing skips any detector CSV that already exists on disk
+python scripts/run_ablation_pipeline.py --datasets defactify genimage --skip-existing
+```
+
+**Why `--skip-existing` is safe:** Progress is written to disk after each detector finishes — both the per-image CSV (`results/<det>_<dataset>_<condition>.csv`) and the metrics.csv row are appended immediately. A restart with `--skip-existing` skips any eval whose output CSV already exists. The only risk is a partially-generated ablated image directory; delete those manually before restarting (see step 2 above).
+
+**Why:** Session has a time limit; GenImage normalization alone takes ~2h on CPU and is better started fresh.
+**Result / Status:** In progress. GenImage ablation pending next session.
+
+---
+
+### 2026-05-03 — Defactify band ablation complete; GenImage startup note
+
+**What:** Defactify band ablation fully complete (all 3 bands × 7 detectors = 21 rows). Pipeline was killed cleanly by watcher after `=== defactify: all bands complete ===`. GenImage normalization had just started (100/50000 real images written) before the kill — partial dir at `/root/normalized/genimage/real/` must be deleted before resuming.
+
+**Defactify ablation AUC results (6 external detectors):**
+
+| detector    | ablated_low | ablated_mid | ablated_high | original |
+|-------------|-------------|-------------|--------------|----------|
+| cnndetection| 0.5028      | 0.5251      | 0.5165       | 0.5073   |
+| freqnet     | 0.4588      | 0.5244      | 0.5261       | 0.5106   |
+| npr         | 0.5121      | 0.5336      | 0.5673       | 0.5201   |
+| univfd      | 0.4809      | 0.4673      | 0.4905       | 0.5361   |
+| fatformer   | 0.4816      | 0.4370      | 0.5100       | 0.5572   |
+| bfree       | 0.5470      | 0.5471      | 0.5797       | 0.6112   |
+
+**Key observations:** All detectors hover near AUC 0.5 across all bands — Defactify shows no meaningful band-ablation signal for any external detector. B-Free has the highest AUC across bands (0.547–0.580) but still near chance. NPR shows a slight increase on high-band removal (0.512→0.567), marginally consistent with high-frequency shortcut use. FreqNet drops below 0.5 on low-band removal (0.459) — inverted. These near-chance results are consistent with the original Defactify baseline (all detectors 0.51–0.56 AUC).
+
+**To resume GenImage in a fresh session:**
+```bash
+# 1. Install deps
+pip install pandas scikit-learn pillow tqdm torch torchvision numpy pyarrow timm ftfy regex
+pip install git+https://github.com/openai/CLIP.git PyWavelets pytorch_wavelets
+
+# 2. Clean the partial normalization dir (100 files written before kill)
+rm -rf /root/normalized/genimage
+
+# 3. Run GenImage only
+python scripts/run_ablation_pipeline.py --datasets genimage --skip-existing
+```
+
+**Why:** Session ended; watcher killed pipeline as intended. GenImage requires ~2h normalization before ablation can run.
+**Result / Status:** Defactify complete (21 rows in metrics.csv). GenImage pending.
+
+### 2026-05-04 — CLAUDE.md audit and update
+
+**What:** Updated CLAUDE.md to reflect current project state: (1) phase status table updated — Phase 4 CIFAKE+Defactify are fully appended to metrics.csv, GenImage ablated_low is in, but ablated_mid/high and some format_swapped rows are still missing; (2) added a genimage gap table listing exactly which (detector, condition) rows are still needed; (3) updated metrics.csv row count from 43 to 110; (4) added GenImage resume command to the Band ablation section (sourced from journal).
+**Why:** Phase status table and row count were stale since before the ablation data was appended.
+**Result / Status:** CLAUDE.md updated. No code changes.
+
+### 2026-05-04 — Paper updated with Acts 4 and 5 (format-swap + band ablation)
+
+**What:** Added three new experiments to all paper sections (abstract, intro, method, experiments, conclusion): (1) trivial format baseline (AUC=1.000 on GenImage, 0.500 on CIFAKE/Defactify) added to Act 1 as the zero-parameter punchline; (2) Act 4 — Format-Swap as a Causal Probe, with Table 4 showing FreqNet 0.977→0.503, NPR 0.951→0.381 on GenImage format-swapped, CNN2D 0.530→0.969 on CIFAKE format-swapped; (3) Act 5 — Frequency Band Ablation, with Table 5 showing NPR drops -0.56, UnivFD -0.40, FreqNet -0.34 when low-freq band removed from GenImage. Also expanded intro from 3 to 5 claims, updated abstract with causal results, rewrote conclusion to include format-swap and band ablation findings. All 5 sections updated: 0_abstract.tex, 1_intro.tex, 3_method.tex, 4_experiments.tex, 5_conclusion.tex.
+**Why:** Paper was written 2026-04-22 and concluded with only the correlational story (Acts 1-3). Three causal experiments had been run since then (trivial baseline, format-swap, band ablation) that directly confirm the mechanism. The conclusion even noted band ablation as pending. These results significantly strengthen the paper's claim from correlation to causation.
+**Result / Status:** Paper draft complete with 5-act narrative. Only pending data: GenImage ablated_high (all detectors) and GenImage ablated_mid for UnivFD, FatFormer, B-Free. These are noted as pending in Table 5 caption. The core argument is fully supported by existing data.

@@ -1,0 +1,11 @@
+Detector : cnndetection
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/CNNDetection/weights/blur_jpg_prob0.5.pth
+Data     : /root/ablated/genimage/mid
+Device   : cuda
+Loading model...
+Images   : 126676 (50000 real, 76676 fake)
+Running inference...
+
+AUC      : 0.6059
+Acc@0.5  : 0.4133
+Saved    : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/results/cnndetection_genimage_ablated_mid.csv  (126676 rows)

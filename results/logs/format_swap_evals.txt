@@ -1,0 +1,9 @@
+Format-swap done, launching evals
+--- cnndetection genimage format_swapped ---
+Detector : cnndetection
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/CNNDetection/weights/blur_jpg_prob0.5.pth
+Data     : /root/swapped/genimage
+Device   : cpu
+Loading model...
+Images   : 126676 (50000 real, 76676 fake)
+Running inference...

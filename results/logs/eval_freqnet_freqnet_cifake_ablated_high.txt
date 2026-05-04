@@ -1,0 +1,11 @@
+Detector : freqnet
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FreqNet-DeepfakeDetection/4-classes-freqnet-v2.pth
+Data     : /root/ablated/cifake/high
+Device   : cuda
+Loading model...
+Images   : 20000 (10000 real, 10000 fake)
+Running inference...
+
+AUC      : 0.4473
+Acc@0.5  : 0.4346
+Saved    : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/results/freqnet_cifake_ablated_high.csv  (20000 rows)

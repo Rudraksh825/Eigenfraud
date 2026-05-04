@@ -22,6 +22,7 @@ Usage:
 
 import argparse
 import numpy as np
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from PIL import Image
 from tqdm import tqdm
@@ -59,18 +60,36 @@ def ablate_image(img: Image.Image, band: str) -> Image.Image:
     return Image.fromarray(out)
 
 
-def process_dir(src: Path, dst: Path, band: str):
+def _ablate_one(args):
+    src_path, dst_path, band = args
+    try:
+        img = Image.open(src_path)
+        out = ablate_image(img, band)
+        out.save(dst_path, format='PNG')
+        return True
+    except Exception:
+        return False
+
+
+def process_dir(src: Path, dst: Path, band: str, workers: int = 1):
     dst.mkdir(parents=True, exist_ok=True)
     paths = [p for p in src.rglob('*') if p.suffix.lower() in IMAGE_EXTS]
+    tasks = [(p, dst / (p.stem + '.png'), band) for p in paths]
     ok = skip = 0
-    for p in tqdm(paths, desc=f"  {src.name}", ncols=80):
-        try:
-            img = Image.open(p)
-            out = ablate_image(img, band)
-            out.save(dst / (p.stem + '.png'), format='PNG')
-            ok += 1
-        except Exception as e:
-            skip += 1
+    if workers > 1:
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            futs = {ex.submit(_ablate_one, t): t for t in tasks}
+            for f in tqdm(as_completed(futs), total=len(tasks), desc=f"  {src.name}", ncols=80):
+                if f.result():
+                    ok += 1
+                else:
+                    skip += 1
+    else:
+        for t in tqdm(tasks, desc=f"  {src.name}", ncols=80):
+            if _ablate_one(t):
+                ok += 1
+            else:
+                skip += 1
     print(f"  {src.name}: {ok} saved, {skip} skipped")
 
 

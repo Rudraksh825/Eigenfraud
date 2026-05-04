@@ -1,0 +1,11 @@
+Detector : npr
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/NPR-DeepfakeDetection/NPR.pth
+Data     : /root/ablated/cifake/mid
+Device   : cuda
+Loading model...
+Images   : 20000 (10000 real, 10000 fake)
+Running inference...
+
+AUC      : 0.4314
+Acc@0.5  : 0.4364
+Saved    : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/results/npr_cifake_ablated_mid.csv  (20000 rows)

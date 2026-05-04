@@ -1,0 +1,11 @@
+Detector : freqnet
+Weights  : /__modal/volumes/vo-WzpOG7GaLWKcTLwBAnypIi/Eigenfraud/detectors/FreqNet-DeepfakeDetection/4-classes-freqnet-v2.pth
+Data     : /root/swapped/genimage
+Device   : cuda
+Loading model...
+Images   : 126676 (50000 real, 76676 fake)
+Running inference...
+
+AUC      : 0.5084
+Acc@0.5  : 0.3962
+Saved    : results/freqnet_genimage_format_swapped.csv  (126676 rows)

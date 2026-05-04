@@ -23,6 +23,7 @@ Output layout: <output>/real/  and  <output>/fake/
 
 import argparse
 import io
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from PIL import Image
@@ -41,22 +42,42 @@ def normalize_image(img: Image.Image, size: int, method: int) -> Image.Image:
     return img.convert('RGB').resize((size, size), method)
 
 
-def process_file_dir(src: Path, dst: Path, size: int, method: int, label: str) -> int:
+def _normalize_one(args):
+    src_path, dst_path, size, method = args
+    try:
+        out = normalize_image(Image.open(src_path), size, method)
+        out.save(dst_path, format='PNG')
+        return True
+    except Exception:
+        return False
+
+
+def process_file_dir(src: Path, dst: Path, size: int, method: int, label: str,
+                     workers: int = 1) -> int:
     dst.mkdir(parents=True, exist_ok=True)
     paths = [p for p in src.rglob('*') if p.suffix.lower() in IMAGE_EXTS]
+    tasks = [(p, dst / (p.stem + '.png'), size, method) for p in paths]
     ok = skip = 0
-    for p in tqdm(paths, desc=f"  {label}", ncols=80):
-        try:
-            out = normalize_image(Image.open(p), size, method)
-            out.save(dst / (p.stem + '.png'), format='PNG')
-            ok += 1
-        except Exception:
-            skip += 1
+    if workers > 1:
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            futs = {ex.submit(_normalize_one, t): t for t in tasks}
+            for f in tqdm(as_completed(futs), total=len(tasks), desc=f"  {label}", ncols=80):
+                if f.result():
+                    ok += 1
+                else:
+                    skip += 1
+    else:
+        for t in tqdm(tasks, desc=f"  {label}", ncols=80):
+            if _normalize_one(t):
+                ok += 1
+            else:
+                skip += 1
     print(f"  {label}: {ok} saved, {skip} skipped")
     return ok
 
 
-def process_files_by_subdir(input_dir: Path, output_dir: Path, size: int, method: int):
+def process_files_by_subdir(input_dir: Path, output_dir: Path, size: int, method: int,
+                            workers: int = 1):
     """Auto-detect real/fake subdirs from naming convention."""
     found = False
     for subdir in sorted(input_dir.iterdir()):
@@ -64,10 +85,10 @@ def process_files_by_subdir(input_dir: Path, output_dir: Path, size: int, method
             continue
         name = subdir.name.lower()
         if 'real' in name:
-            process_file_dir(subdir, output_dir / 'real', size, method, 'real')
+            process_file_dir(subdir, output_dir / 'real', size, method, 'real', workers)
             found = True
         elif 'fake' in name:
-            process_file_dir(subdir, output_dir / 'fake', size, method, 'fake')
+            process_file_dir(subdir, output_dir / 'fake', size, method, 'fake', workers)
             found = True
     if not found:
         raise ValueError(
@@ -127,6 +148,8 @@ def main():
                         help='Resize to size×size (default: 256)')
     parser.add_argument('--method',  default='bilinear', choices=list(RESIZE_METHODS.keys()),
                         help='Resize method (default: bilinear)')
+    parser.add_argument('--workers', type=int, default=1,
+                        help='Parallel worker threads (default: 1; use 8-16 for faster I/O)')
     args = parser.parse_args()
 
     if args.input_real and not args.input_fake:
@@ -137,10 +160,10 @@ def main():
     print(f"Size   : {args.size}×{args.size}  method={args.method}")
 
     if args.input:
-        process_files_by_subdir(args.input, args.output, args.size, method)
+        process_files_by_subdir(args.input, args.output, args.size, method, args.workers)
     elif args.input_real:
-        process_file_dir(args.input_real, args.output / 'real', args.size, method, 'real')
-        process_file_dir(args.input_fake, args.output / 'fake', args.size, method, 'fake')
+        process_file_dir(args.input_real, args.output / 'real', args.size, method, 'real', args.workers)
+        process_file_dir(args.input_fake, args.output / 'fake', args.size, method, 'fake', args.workers)
     else:
         process_parquet(args.parquet, args.split, args.output, args.size, method)
 
