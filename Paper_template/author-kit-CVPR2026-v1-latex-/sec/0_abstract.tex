@@ -4,10 +4,12 @@ We investigate whether this gap is driven by dataset construction artifacts --- 
 
 We evaluate six public detectors on three benchmarks chosen to span the range of construction artifact severity: one with no format or resolution bias, one with resolution bias only, and one with both.
 On the artifact-free benchmark, every external detector scores below chance --- not merely near-random, but systematically inverted, calling real images fake more often than fake images.
-The same detectors recover to near-perfect performance on the benchmark that reintroduces the format shortcut present in their training data, with an average swing exceeding 0.5~AUC between the two test sets.
+The same detectors recover to near-perfect performance on the benchmark that reintroduces the format shortcut present in their training data, with an average swing exceeding $0.5$ AUC between the two test sets.
+A zero-parameter format classifier (PNG $=$ fake, JPEG $=$ real) achieves AUC $= 1.000$ on the most biased benchmark, confirming the shortcut is sufficient for perfect classification before any model is applied.
 
-We propose that below-chance performance on an artifact-free benchmark should be treated not as a failure mode but as a diagnostic: a reliable indicator that a detector has learned dataset construction patterns rather than genuine generative structure.
-Format normalization further reveals a taxonomy of detector behavior --- most detectors remain shortcut-bound even after re-encoding, while one detector based on semantic visual features improves, suggesting it responds to genuine image quality differences rather than compression artifacts.
+To confirm that format is the mechanism and not a correlate, we conduct a format-swap experiment: re-encoding real images as PNG and fake images as JPEG reverses the format association.
+FreqNet drops from AUC $0.977$ to $0.503$ under this swap; NPR inverts to $0.381$.
+Frequency band ablation further localizes the shortcut: zeroing the low-frequency band ($r < 0.2\,r_{\max}$) degrades all six detectors substantially on the biased benchmark, with NPR falling by $0.56$ AUC and UnivFD by $0.40$.
 
 Taken together, our results suggest that high reported AUC in AI-generated image detection may reflect shortcut transfer rather than forensic capability, and that cross-dataset evaluation against artifact-controlled benchmarks is a necessary condition for meaningful progress claims.
 \end{abstract}

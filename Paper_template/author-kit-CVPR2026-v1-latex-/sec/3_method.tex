@@ -38,3 +38,21 @@ To probe whether performance depends on file-format and size mismatches, we also
   \item Save as PNG (lossless; no re-JPEG-compression).
 \end{enumerate}
 This transform is applied identically to both classes. It does not remove content-baked artifacts already present in the pixels, but it does remove trivial differences in container format and nominal resolution. We therefore use normalization as a diagnostic, not as a claim that all confounds are solved.
+
+\subsection{Format-Swap as a Causal Probe}
+\label{sec:swap_method}
+
+Normalization removes format differences but does not reverse them. To establish a causal link, we conduct a \emph{format-swap} experiment: every real image is re-encoded as PNG (losslessly from JPEG) and every fake image is re-encoded as JPEG at quality 85 (compressed from PNG). This reverses the natural format association present in both GenImage and the ProGAN training data that all six detectors were trained on.
+
+If detector performance on GenImage relies on the JPEG$=$real/PNG$=$fake pattern, performance should collapse or invert when that pattern is reversed. We also run the swap on CIFAKE, where both classes are originally JPEG. Introducing a format difference on an otherwise artifact-free benchmark tests whether detectors will exploit format when given the opportunity.
+
+\subsection{Frequency Band Ablation}
+\label{sec:ablation_method}
+
+To localize which frequency ranges carry the shortcut signal, we ablate images in the frequency domain before evaluation. Each image is transformed with a 2D FFT; all components within the target radial band are set to zero; the image is reconstructed via inverse FFT and clipped to $[0, 255]$. We test three non-overlapping bands defined by radial distance $r$ from the DC component:
+\begin{itemize}[itemsep=1pt,topsep=2pt]
+  \item \textbf{Low:} $r < 0.2\,r_{\max}$ --- DC, coarse structure, and format-induced energy differences.
+  \item \textbf{Mid:} $0.2 \leq r < 0.6\,r_{\max}$ --- mid-range texture and edges.
+  \item \textbf{High:} $r \geq 0.6\,r_{\max}$ --- fine detail, compression noise.
+\end{itemize}
+Ablation is applied to normalized $256\times256$ PNG images. A large AUC drop when a band is removed indicates detector reliance on that band's content.

@@ -7,17 +7,19 @@ This paper audits that failure mode directly. We study three datasets with very 
 \begin{itemize}[itemsep=2pt,topsep=2pt]
   \item \textbf{CIFAKE} is close to an artifact-controlled stress test: both classes are $32\times32$ JPEG.
   \item \textbf{Defactify} removes format bias but retains strong resolution bias.
-  \item \textbf{GenImage} contains both severe format and resolution bias.
+  \item \textbf{GenImage} contains both severe format and resolution bias --- a zero-parameter file-extension classifier achieves AUC $= 1.000$ on it.
 \end{itemize}
 These artifacts matter because they create shortcuts in exactly the frequency ranges many detectors inspect. A detector can therefore optimize benchmark AUC by exploiting a spurious cue that is easier to learn than generator-specific evidence. We use ``reward hacking'' in that limited sense: a model maximizes the benchmark objective by locking onto dataset construction signals rather than the intended concept.
 
 \paragraph{What we show.}
-Our results support three concrete claims.
+Our results support five concrete claims.
 \begin{enumerate}[itemsep=2pt,topsep=2pt]
-  \item \textbf{The benchmark bias is measurable.} The ordering of high-frequency divergence is not subtle: CIFAKE $<\!\!<$ Defactify $<$ GenImage.
-  \item \textbf{AUC $< 0.5$ is diagnostic, not just bad luck.} On CIFAKE, six external detectors score below chance. This means their decisions are often inverted, which is evidence that they learned a wrong but internally consistent rule.
-  \item \textbf{Detector success tracks shortcut availability.} The same detectors that invert on CIFAKE recover very high AUC on GenImage, where the JPEG/PNG shortcut is present again.
+  \item \textbf{The benchmark bias is measurable.} The ordering of high-frequency divergence is not subtle: CIFAKE $\ll$ Defactify $<$ GenImage. A format-only classifier is perfect on GenImage and random on the other two.
+  \item \textbf{AUC $< 0.5$ is diagnostic, not just bad luck.} On CIFAKE, six external detectors score below chance. Their decisions are systematically inverted --- evidence of a wrong but internally consistent rule.
+  \item \textbf{Detector success tracks shortcut availability.} The same detectors that invert on CIFAKE recover above $0.91$ AUC on GenImage, where the JPEG/PNG shortcut is present again.
+  \item \textbf{Format is the mechanism, not a correlate.} Reversing the format association (real $\to$ PNG, fake $\to$ JPEG) collapses FreqNet from $0.977$ to $0.503$ and inverts NPR to $0.381$, confirming causality.
+  \item \textbf{The shortcut lives in low frequencies.} Band ablation shows that removing the low-frequency band ($r < 0.2\,r_{\max}$) produces the largest AUC drops, localizing the format artifact to the spectral region where JPEG blocking and energy differences manifest.
 \end{enumerate}
 
 \paragraph{Scope and framing.}
-This is an audit paper, not a new detector paper. We do not claim to solve AI-image detection. We use public checkpoints, dataset audits, spectral summaries, and controlled re-encoding to ask a narrower question: when a detector performs well, is it recognizing generation or exploiting the benchmark?
+This is an audit paper, not a new detector paper. We do not claim to solve AI-image detection. We use public checkpoints, dataset audits, spectral summaries, controlled re-encoding, and frequency ablation to ask a narrower question: when a detector performs well, is it recognizing generation or exploiting the benchmark?
