@@ -336,7 +336,8 @@ PIL image
 - `scripts/run_ablation_pipeline.py` — full Phase 4 automation: normalize → ablate × 3 bands → eval × 6 detectors → append to `results/metrics.csv`; `--skip-existing` for resuming, `--datasets` to restrict scope
 - `scripts/setup_genimage.sh` / `setup_genimage_merged.sh` / `setup_genimage_parallel.sh` — GenImage dataset setup helpers (symlink/merge real+fake splits into a single dir layout)
 - `Paper_template/author-kit-CVPR2026-v1-latex-/` — CVPR 2026 paper draft (LaTeX); `sec/` contains per-section `.tex` files; `main.bib` for citations
-- `notebooks/` — `verifying.ipynb`, `ManualInspection.ipynb`, `infer_images.ipynb`, `fft_roundtrip.ipynb`
+- `Formatting_Instructions_For_NeurIPS_2026/` — alternative NeurIPS 2026 template; contains `neurips_2026.tex` + Figure 1 PNG; use if targeting NeurIPS instead of CVPR
+- `notebooks/` — `verifying.ipynb`, `ManualInspection.ipynb`, `infer_images.ipynb`, `fft_roundtrip.ipynb`, `band_ablation_viz.ipynb`, `cross_generator_analysis.ipynb`
 - `detectors/` — cloned external detector repos (CNNDetection, FreqNet-DeepfakeDetection, UniversalFakeDetect, NPR-DeepfakeDetection, FatFormer, B-Free)
 - `PIVOT.md` — full phased research plan with deliverables
 - `status.md` — post-pivot progress tracker (completed findings, up-next tasks)

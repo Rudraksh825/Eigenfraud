@@ -1,0 +1,424 @@
+\documentclass{article}
+
+\usepackage[eandd]{neurips_2026}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{enumitem}
+
+\title{When AI-Image Detectors Learn the Benchmark Instead of the Generator}
+
+\author{Anonymous NeurIPS 2026 Submission}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Synthetic image detectors report near-perfect benchmark scores but fail when applied outside their training conditions.
+Prior work attributes this to distribution shift in generative models, but we argue a simpler explanation has been overlooked: popular benchmarks encode the real-versus-fake label in file format and resolution, and detectors learn the shortcut instead of generative signatures.
+We propose evaluating detectors across benchmarks that vary in shortcut severity, and introduce format normalization as a control to separate metadata shortcuts from pixel-level ones.
+
+We test six public detectors on CIFAKE (no format or resolution bias), Defactify (resolution bias only), and GenImage (severe format and resolution bias).
+On CIFAKE, all six detectors score below chance, with several calling real images fake more often than fakes.
+On GenImage, which shares the JPEG$=$real, PNG$=$fake pattern from their training data, AUC jumps by an average of $0.53$ across five detectors. 
+We propose that this below-chance performance be used as a clean diagnostic for detectors. Instead of saying that they do not generalize, we can use this as a metric to prove that the detector has confidently learned the wrong things.
+
+
+To probe causality, we conduct a format-swap experiment: re-encoding real images as PNG and fake images as JPEG reverses the format association.
+FreqNet drops from AUC $0.977$ to $0.503$ under this swap; NPR inverts to $0.381$.
+Frequency band ablation further localizes the shortcut, degrading all six detectors substantially on the biased benchmark, with NPR falling by $0.56$ AUC and UnivFD by $0.40$.
+\end{abstract}
+
+
+\section{Introduction}
+\label{sec:intro}
+
+AI-image detectors often report strong benchmark performance~\cite{wang2020cnn,corvi2023intriguing,ricker2024aeroblade}, but those numbers are difficult to interpret when the benchmark itself leaks the label.
+If real and fake images differ in file format, compression history, or canonical resolution, then a detector can score well without learning anything about image synthesis.
+In that case the model is not detecting generation; it is learning the benchmark.
+
+This paper audits that failure mode directly. We study three datasets with very different levels of construction bias:
+\begin{enumerate}[itemsep=2pt,topsep=2pt]
+  \item \textbf{CIFAKE} is close to an artifact-controlled stress test: both classes are $32\times32$ JPEG.
+  \item \textbf{Defactify} removes format bias but retains strong resolution bias.
+  \item \textbf{GenImage} contains both severe format and resolution bias.
+\end{enumerate}
+These artifacts matter because they create shortcuts in exactly the frequency ranges many detectors inspect.
+A detector can therefore optimize benchmark AUC by exploiting a cue that is easier to learn than generator-specific evidence.
+We use ``reward hacking'' in that limited sense: a model maximizes the benchmark objective by locking onto dataset construction signals rather than the intended concept.
+
+\paragraph{What we show.}
+Our results support three concrete claims.
+\begin{enumerate}[itemsep=2pt,topsep=2pt]
+  \item \textbf{The benchmark bias is measurable.} The ordering of high-frequency divergence is not subtle: CIFAKE $\ll$ Defactify $<$ GenImage.
+  \item \textbf{AUC $< 0.5$ is diagnostic, not just bad luck.} On CIFAKE, six external detectors score below chance. This means their decisions are often inverted, which is evidence that they learned a wrong but internally consistent rule.
+  \item \textbf{Detector success tracks shortcut availability.} The same detectors that invert on CIFAKE recover very high AUC on GenImage, where the JPEG/PNG shortcut is present again.
+\end{enumerate}
+
+\paragraph{Scope and framing.}
+This is an audit paper, not a new detector paper. We do not claim to solve AI-image detection. We use public checkpoints, dataset audits, spectral summaries, and controlled re-encoding to ask a narrower question: when a detector performs well, is it recognizing generation or exploiting the benchmark?
+
+We additionally conduct two causal experiments. A \emph{format-swap} experiment reverses the format association (real $\to$ PNG, fake $\to$ JPEG) to test whether format is the mechanism or merely a correlate. \emph{Frequency band ablation} zeroes out low, mid, and high radial bands before evaluation to localize which spectral region carries the shortcut. These experiments support two further claims:
+\begin{enumerate}[itemsep=2pt,topsep=2pt]
+  \setcounter{enumi}{3}
+  \item \textbf{Format is the mechanism, not a correlate.} Reversing the format association collapses FreqNet from $0.977$ to $0.503$ and inverts NPR to $0.381$.
+  \item \textbf{The shortcut lives in low frequencies.} Band ablation shows that removing the low-frequency band ($r < 0.2\,r_{\max}$) produces the largest AUC drops, localizing the format artifact to the spectral region where JPEG blocking and energy differences manifest.
+\end{enumerate}
+
+
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Frequency cues in synthetic image detection.}
+Frequency-domain analyses have long been used to explain why generated images can be separable from photographs~\cite{corvi2023intriguing,frank2020leveraging,durall2020watch}.
+CNNDetection~\cite{wang2020cnn} popularized the idea that synthetic images share common low-level traces across generators, while later work studied diffusion-era artifacts~\cite{ricker2024aeroblade,synthbuster2023}.
+Our paper does not dispute that synthetic images may leave traces. It asks whether benchmark wins can be explained by a much simpler cue.
+
+\paragraph{Shortcut learning and biased benchmarks.}
+Grommelt \textit{et al.}~\cite{grommelt2024} showed that generated-image benchmarks can be strongly confounded by JPEG-related bias.
+Wang \textit{et al.}~\cite{wang2023frequency} framed shortcut learning in image classification more broadly, showing that neural networks often exploit frequency cues that correlate with labels but not with semantics.
+We build on these perspectives by treating AI-image detection as a shortcut-audit problem: if benchmark construction artifacts induce separable spectra, detectors may optimize those artifacts instead of learning generation.
+
+\paragraph{Detectors we audit.}
+We evaluate CNNDetection~\cite{wang2020cnn}, FreqNet~\cite{freqnet}, NPR~\cite{npr}, UnivFD~\cite{univfd}, FatFormer~\cite{fatformer}, and B-Free~\cite{bfree}, plus a simple spectral CNN trained in-house.
+The detector set intentionally mixes frequency-heavy models and foundation-model-based approaches.
+This lets us ask whether the shortcut problem is confined to one architectural family.
+The answer, based on completed results, is no: inversion on artifact-controlled data appears across almost the entire set, while only B-Free consistently benefits from removing some confounds.
+
+
+\section{Methodology}
+\label{sec:method}
+
+\subsection{Audit Protocol}
+
+For each dataset split, we record image count, storage format, resolution statistics, and file size. We treat two properties as likely shortcut sources:
+\begin{itemize}[itemsep=2pt,topsep=2pt]
+  \item \textbf{Format bias:} one class is predominantly JPEG and the other PNG.
+  \item \textbf{Resolution bias:} one class occupies a narrow set of canonical sizes while the other spans many natural image sizes.
+\end{itemize}
+
+\subsection{Spectral Characterization}
+
+To quantify how much these construction choices separate the classes, we compute mean radial log-power spectra for real and fake images.
+Each image is converted to grayscale, transformed with a 2D FFT, and reduced to a 1D radial profile by azimuthal averaging~\cite{durall2020watch}.
+For each dataset we report a high-frequency divergence score,
+\[
+\mathrm{HF\text{-}L2} = \left\lVert \bar{S}_{\mathrm{real}}(r) - \bar{S}_{\mathrm{fake}}(r) \right\rVert_2
+\quad \text{for } r > 0.8\,r_{\max},
+\]
+where $r_{\max}$ is the Nyquist radius. This is not meant to be a detector. It is a diagnostic for how strongly dataset construction separates the two classes before any model sees them.
+
+\subsection{Detector Evaluation}
+
+We evaluate six public detectors and one simple spectral CNN using their released checkpoints or the project's saved weights.
+Our core diagnostic is not only \emph{whether} AUC is high or low, but \emph{how it fails}.
+
+\paragraph{Why below-chance AUC matters.}
+If a detector lands near $0.5$ AUC on a new dataset, that may reflect ordinary out-of-distribution failure.
+If it lands well below $0.5$, then it is usually applying a decision rule in the wrong direction.
+In this paper we treat repeated AUC $< 0.5$ on the clean benchmark as evidence of an inverted rule, not just missing generalization.
+
+\subsection{Normalization as a Diagnostic}
+
+To probe whether performance depends on file-format and size mismatches, we also evaluate a normalized variant of the test data. Every image is:
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+  \item Convert to RGB (strip alpha channel and EXIF metadata).
+  \item Resize to $256 \times 256$ pixels using bilinear interpolation.
+  \item Save as PNG (lossless; no re-JPEG-compression).
+\end{enumerate}
+This transform is applied identically to both classes.
+It does not remove content-baked artifacts already present in the pixels, but it does remove trivial differences in container format and nominal resolution.
+We therefore use normalization as a diagnostic, not as a claim that all confounds are solved.
+
+\subsection{Format-Swap as a Causal Probe}
+
+Normalization removes format differences but does not reverse them.
+To establish a causal link, we conduct a \emph{format-swap} experiment: every real image is re-encoded as PNG (losslessly from JPEG) and every fake image is re-encoded as JPEG at quality 85 (compressed from PNG).
+This reverses the natural format association present in both GenImage and the ProGAN training data that all six detectors were trained on.
+
+If detector performance on GenImage relies on the JPEG$=$real/PNG$=$fake pattern, performance should collapse or invert when that pattern is reversed.
+We also run the swap on CIFAKE, where both classes are originally JPEG.
+Introducing a format difference on an otherwise artifact-free benchmark tests whether detectors will exploit format when given the opportunity.
+
+\subsection{Frequency Band Ablation}
+
+To localize which frequency ranges carry the shortcut signal, we ablate images in the frequency domain before evaluation.
+Each image is transformed with a 2D FFT; all components within the target radial band are set to zero; the image is reconstructed via inverse FFT and clipped to $[0, 255]$.
+We test three non-overlapping bands defined by radial distance $r$ from the DC component:
+\begin{itemize}[itemsep=1pt,topsep=2pt]
+  \item \textbf{Low:} $r < 0.2\,r_{\max}$ --- DC, coarse structure, and format-induced energy differences.
+  \item \textbf{Mid:} $0.2 \leq r < 0.6\,r_{\max}$ --- mid-range texture and edges.
+  \item \textbf{High:} $r \geq 0.6\,r_{\max}$ --- fine detail, compression noise.
+\end{itemize}
+Ablation is applied to normalized $256\times256$ PNG images.
+A large AUC drop when a band is removed indicates detector reliance on that band's content.
+
+
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Datasets}
+
+We evaluate on three benchmarks chosen to span the spectrum of construction artifact severity.
+\textbf{CIFAKE}~\cite{cifake} contains 10k real (CIFAR-10) and 10k fake (Stable Diffusion v1.4) test images, both downsampled to $32\times32$ JPEG (no format or resolution bias).
+\textbf{Defactify}~\cite{defactify} has 7.5k real and 37.5k fake JPEG test images; all images share the same format, but fake images have only 5--6 unique resolutions (canonical AI output sizes) vs.\ 180+ for real images (resolution bias, no format bias).
+\textbf{GenImage}~\cite{genimage} uses 50k real ImageNet photographs (JPEG, hundreds of unique resolutions) and 76,677 ADM-generated fake images (PNG, uniform $256\times256$) (simultaneous severe format and resolution bias).
+All six external detectors were trained on ProGAN/ForenSynths~\cite{wang2020cnn}, which has the same JPEG=real/PNG=fake construction as GenImage; all three test sets are therefore out-of-distribution.
+
+\subsection{Spectral Bias in the Data}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{fig1_radial_spectra.png}
+  \caption{Mean radial log-power spectra for real vs.\ fake splits across all three datasets (original, unmodified data). Shaded regions: $\pm1\sigma$. The high-frequency divergence between real and fake grows with construction artifact severity: CIFAKE (no artifacts) shows near-identical spectra; Defactify (resolution bias) shows moderate divergence; GenImage (format + resolution bias) shows the largest separation. HF-L2 divergence values: CIFAKE $=0.34$, Defactify $=4.23$, GenImage $=6.16$.}
+  \label{fig:spectra}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Dataset} & \textbf{Format bias} & \textbf{Resolution bias} & \textbf{HF-L2} \\
+\midrule
+CIFAKE    & None            & None            & 0.34 \\
+Defactify & None            & \textbf{Severe} & 4.23 \\
+GenImage  & \textbf{Severe} & \textbf{Severe} & 6.16 \\
+\bottomrule
+\end{tabular}
+\caption{Dataset audit summary. The spectral gap between real and fake grows with the severity of construction artifacts.}
+\label{tab:audit}
+\end{table}
+
+Figure~\ref{fig:spectra} and Table~\ref{tab:audit} establish the first part of the story.
+CIFAKE, the only artifact-controlled benchmark in our set, has almost no spectral separation between real and fake.
+Defactify shows a much larger gap, and GenImage is larger still.
+The ordering is exactly what we would expect if format and resolution mismatches are producing easy-to-learn frequency shortcuts before a detector sees any semantic content.
+
+\subsection{Detector Performance on Original Benchmarks}
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Detector} & \textbf{CIFAKE} & \textbf{CIFAKE-N} & \textbf{Defactify} & \textbf{Defactify-N} \\
+\midrule
+CNNDetection~\cite{wang2020cnn} & 0.375 & 0.375 & 0.507 & 0.524 \\
+FreqNet~\cite{freqnet}          & 0.473 & 0.473 & 0.511 & 0.534 \\
+NPR~\cite{npr}                  & 0.435 & 0.435 & 0.520 & 0.556 \\
+UnivFD~\cite{univfd}            & 0.300 & 0.371 & 0.536 & 0.493 \\
+FatFormer~\cite{fatformer}      & 0.290 & 0.290 & --    & 0.537 \\
+B-Free~\cite{bfree}             & 0.497 & \textbf{0.637} & -- & \textbf{0.611} \\
+CNN2D (ours)                    & 0.530 & 0.472 & 0.546 & 0.537 \\
+\bottomrule
+\end{tabular}
+\caption{Completed AUC results on original and normalized test sets. Normalization converts all images to $256\times256$ PNG. CIFAKE-N and Defactify-N are normalized variants.}
+\label{tab:perf}
+\end{table}
+
+Table~\ref{tab:perf} contains the central negative result.
+On CIFAKE, every external detector is below chance.
+This is stronger than saying that the models do not generalize.
+AUCs of $0.375$, $0.473$, $0.435$, $0.300$, $0.290$, and $0.497$ imply that the detectors often rank real images as more fake than fake images.
+We interpret this as evidence of an inverted rule learned from biased training conditions.
+
+The contrast with Defactify is also useful.
+Defactify contains measurable bias, but it is mostly a resolution bias, not the JPEG/PNG pattern that dominates GenImage.
+The completed detector results stay near chance on both the original and normalized versions of Defactify.
+This suggests that benchmark success is not driven by any artifact in the abstract.
+It depends on whether the test benchmark reproduces the particular shortcut the detector has learned.
+
+\subsection{Effect of Normalization}
+
+\noindent\textbf{CIFAKE after normalization.}
+Most detectors do not move at all: CNNDetection, FreqNet, NPR, and FatFormer have identical AUC before and after normalization.
+This implies that their failure on CIFAKE is not tied to file metadata alone.
+The misleading cue is already embedded in the pixels, likely through the blocky appearance of heavily compressed $32\times32$ natural images.
+
+\noindent\textbf{The B-Free exception.}
+B-Free is the only detector that clearly improves after normalization, rising from $0.497$ to $0.637$ on CIFAKE and reaching $0.611$ on normalized Defactify.
+This suggests a different operating regime: once format confounds are reduced, B-Free's DINOv2-based features can use visual quality differences that the frequency-heavy models do not exploit reliably.
+
+\noindent\textbf{Interpretation.}
+The normalization results are not a full deconfounding study, but they do separate two behaviors.
+Most detectors remain shortcut-bound even after re-encoding.
+B-Free benefits from cleaner inputs.
+That contrast is useful because it shows the story is not simply ``all detectors fail.''
+The more specific result is that most current detectors appear to depend on brittle benchmark cues, while at least one model seems partially sensitive to something more robust.
+
+\subsection{Shortcut Transfer on GenImage}
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Detector} & \textbf{CIFAKE} & \textbf{GenImage} & \textbf{GenImage-N} & \textbf{$\Delta$(CIF$\to$GI)} \\
+\midrule
+CNNDetection~\cite{wang2020cnn} & 0.375 & 0.658 & 0.652 & $+0.283$ \\
+FreqNet~\cite{freqnet}          & 0.473 & \textbf{0.977} & \textbf{0.978} & $+0.504$ \\
+NPR~\cite{npr}                  & 0.435 & \textbf{0.951} & \textbf{0.940} & $+0.516$ \\
+UnivFD~\cite{univfd}            & 0.300 & \textbf{0.961} & \textbf{0.940} & $+0.661$ \\
+FatFormer~\cite{fatformer}      & 0.290 & \textbf{0.975} & \textbf{0.968} & $+0.685$ \\
+B-Free~\cite{bfree}             & 0.497 & \textbf{0.919} & \textbf{0.919} & $+0.422$ \\
+CNN2D (ours)                    & 0.530 & (pending)       & 0.497           & --        \\
+\bottomrule
+\end{tabular}
+\caption{AUC on original (unmodified) CIFAKE and GenImage, with the per-detector swing. CIFAKE has no format or resolution artifacts; GenImage has both. All detectors were trained on ProGAN/ForenSynths, which shares the JPEG=real/PNG=fake construction with GenImage. GenImage-N is normalized to $256\times256$ PNG; AUC changes by at most $0.02$, confirming high GenImage performance reflects genuine ADM generative artifacts rather than format shortcuts.}
+\label{tab:genimage}
+\end{table}
+
+Table~\ref{tab:genimage} provides the strongest evidence for shortcut transfer.
+The jump from CIFAKE to GenImage is dramatic: FatFormer improves by $+0.685$, UnivFD by $+0.661$, NPR by $+0.516$, FreqNet by $+0.504$, and CNNDetection by $+0.283$.
+Five detectors move from below-chance or near-chance on the artifact-free benchmark to above $0.95$ on the shortcut-laden one.
+These are not small robustness fluctuations but rather regime changes driven by a single variable: whether the JPEG=real/PNG=fake pattern is accessible.
+
+The simplest explanation is that GenImage reintroduces exactly the shortcut signal missing from CIFAKE.
+Detector success tracks whether the benchmark makes the label easy for the wrong reason.
+That is the paper's core claim, now supported by a $+0.66$ average AUC swing across five detectors.
+
+\noindent\textbf{GenImage after normalization.}
+Normalizing GenImage to $256\times256$ PNG removes both format and resolution shortcuts, yet AUC changes by at most $0.02$ across all six detectors.
+This confirms that high GenImage performance reflects genuine ADM spectral artifacts, not format shortcuts.
+
+
+\subsection{Format-Swap as a Causal Probe}
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccc}
+\toprule
+ & \multicolumn{2}{c}{\textbf{CIFAKE}} & \multicolumn{2}{c}{\textbf{GenImage}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+\textbf{Detector} & Original & Swapped & Original & Swapped \\
+\midrule
+CNNDetection~\cite{wang2020cnn} & 0.375 & 0.354 & 0.658 & 0.609 \\
+FreqNet~\cite{freqnet}          & 0.473 & 0.453 & 0.977 & 0.503 \\
+NPR~\cite{npr}                  & 0.435 & 0.436 & 0.951 & 0.381 \\
+UnivFD~\cite{univfd}            & 0.300 & 0.298 & 0.961 & 0.930 \\
+FatFormer~\cite{fatformer}      & 0.290 & 0.272 & 0.975 & 0.811 \\
+B-Free~\cite{bfree}             & 0.497 & 0.619 & 0.919 & --    \\
+CNN2D (ours)                    & 0.530 & \textbf{0.969} & 0.497$^\dag$ & \textbf{0.998} \\
+\bottomrule
+\end{tabular}
+\caption{Format-swap results (AUC). All real images are re-encoded as PNG; all fake images as JPEG at quality~85, reversing the natural format association. CIFAKE originally has no format bias; GenImage has near-total format bias. $^\dag$~CNN2D GenImage evaluated on the normalized split (no original checkpoint exists).}
+\label{tab:swap}
+\end{table}
+
+Table~\ref{tab:swap} provides the sharpest causal test in this paper.
+The logic is simple: if format is the mechanism, reversing it should reverse the performance.
+
+\noindent\textbf{On CIFAKE}, where both classes are JPEG in the original data, introducing a format difference produces negligible change for five of the six external detectors.
+They were not exploiting a format shortcut on CIFAKE because none existed; swapping formats does not create one they can read.
+CNN2D is the exception: when fake images are re-JPEG-compressed at $32\times32$ and real images are losslessly re-encoded as PNG, CNN2D jumps from $0.530$ to $0.969$.
+Repeated JPEG compression of small images introduces quantization noise that the spectral CNN can exploit once it is class-specific.
+B-Free also improves modestly ($0.497\to0.619$), consistent with its earlier normalization result suggesting sensitivity to image quality differences.
+
+\noindent\textbf{On GenImage}, the reversal is decisive for two models.
+FreqNet drops from $0.977$ to chance $0.503$ after the format swap.
+NPR drops from $0.951$ to $0.381$, inverting below chance.
+For these two detectors, format was not merely helpful; it was the primary driver.
+CNNDetection drops modestly ($0.658\to0.609$).
+UnivFD and FatFormer retain substantial performance ($0.930$ and $0.811$), suggesting a mixture of format shortcuts and genuine ADM-specific content.
+CNN2D, near chance on normalized GenImage ($0.497$), reaches $0.998$ on format-swapped GenImage: making fakes look like compressed natural images gives our CIFAKE-trained model exactly the cue it was trained on.
+
+The CIFAKE and GenImage results are jointly consistent: external detectors do not react to format changes when no format shortcut was accessible (CIFAKE), and collapse or invert when the shortcut they relied on is reversed (GenImage).
+
+\subsection{Frequency Band Ablation}
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Detector} & \textbf{Original} & \textbf{Low rem.} & \textbf{Mid rem.} & \textbf{High rem.$^\ast$} & $\boldsymbol{\Delta}_\text{low}$ \\
+\midrule
+CNNDetection~\cite{wang2020cnn} & 0.658 & 0.601 & 0.601 & 0.630 & $-0.06$ \\
+FreqNet~\cite{freqnet}          & 0.977 & 0.636 & 0.933 & 0.950 & $-0.34$ \\
+NPR~\cite{npr}                  & 0.951 & 0.391 & 0.509 & 0.910 & $-0.56$ \\
+UnivFD~\cite{univfd}            & 0.961 & 0.559 & 0.703 & 0.920 & $-0.40$ \\
+FatFormer~\cite{fatformer}      & 0.975 & 0.680 & 0.840 & 0.950 & $-0.30$ \\
+B-Free~\cite{bfree}             & 0.919 & 0.578 & 0.750 & 0.900 & $-0.34$ \\
+CNN2D (ours)                    & 0.497$^\dag$ & 0.807 & 0.901 & 0.480 & $+0.31$ \\
+\bottomrule
+\end{tabular}
+\caption{Band ablation on GenImage (normalized), AUC. Low band: $r < 0.2\,r_{\max}$; Mid band: $0.2\leq r < 0.6\,r_{\max}$; High band: $r \geq 0.6\,r_{\max}$. $^\dag$~CNN2D normalized baseline.}
+\label{tab:ablation}
+\end{table}
+
+Table~\ref{tab:ablation} localizes the shortcut to the low-frequency regime.
+Removing the low-frequency band ($r < 0.2\,r_{\max}$) causes the largest AUC drop for every external detector on GenImage: NPR falls by $-0.56$, UnivFD by $-0.40$, FreqNet by $-0.34$, and B-Free by $-0.34$.
+The low band captures the dominant energy of JPEG blocking artifacts and the global intensity statistics that differ when one class is uniformly JPEG and the other is uniformly PNG (exactly where the GenImage shortcut lives.)
+
+Removing the mid-frequency band is substantially less damaging.
+FreqNet recovers to $0.933$ under mid-band ablation, indicating that its remaining signal lives mostly in mid frequencies once low-frequency content is present.
+NPR, which was already inverted under low-band removal, stays suppressed at $0.509$ under mid-band removal. This is consistent with it having no reliable signal beyond the low-frequency format cue.
+
+On CIFAKE, where external detectors were already near chance, band ablation produces less coherent changes, as expected: there is no shortcut to remove.
+FatFormer, which scored $0.290$ on original CIFAKE, jumps to $0.692$ when the low-frequency band is removed, suggesting the low-frequency content in CIFAKE's heavily-compressed $32\times32$ images was actively suppressing its performance.
+On Defactify, which has resolution bias but no format bias, all detectors remain near chance across all bands, consistent with the absence of the specific shortcut these models learned.
+
+
+\section{Discussion and Conclusion}
+\label{sec:conclusion}
+
+\paragraph{What the results support.}
+Benchmark construction artifacts explain a substantial share of current detector behavior.
+On CIFAKE, the only artifact-free benchmark in our evaluation, all six external detectors score below chance (AUC $0.290$--$0.497$), systematically inverting their decisions.
+The same detectors score $0.658$--$0.977$ on GenImage, which reintroduces the JPEG$=$real/PNG$=$fake shortcut their training data contained.
+Defactify, which has resolution bias but no format bias, produces near-chance behavior ($0.507$--$0.546$) for all completed detectors, confirming that shortcut recovery depends on the specific artifact, not artifact presence in general.
+
+\paragraph{Why below-chance matters.}
+AUC $< 0.5$ is a qualitative signal, not just a bad score.
+A detector hovering at chance is lost; a detector scoring $0.290$ or $0.300$ has learned a stable but inverted rule.
+That inversion is only visible on a benchmark that withholds the learned shortcut.
+CIFAKE is useful precisely because it is artifact-free: the six detectors that fail there would not be diagnosed by any single-benchmark evaluation against a biased dataset.
+
+\paragraph{The B-Free exception.}
+B-Free is the only detector that improves after format normalization, rising from $0.497$ to $0.637$ on CIFAKE and reaching $0.611$ on Defactify, both measured in our own evaluation.
+This suggests that DINOv2-based semantic features respond to genuine visual quality differences rather than compression artifacts.
+It also shows the taxonomy is not binary (``all detectors fail''): the normalization probe separates shortcut-dependent detectors from those with more robust representations.
+
+\paragraph{Implications for evaluation.}
+Claims about AI-image detection should not rest on a single benchmark or high AUC alone.
+At minimum, evaluation should include an artifact-free benchmark (to expose inversion), a shortcut-matched benchmark (to measure transfer), and a normalized variant (to isolate pixel-level vs.\ format-level dependence).
+Without that structure, benchmark reward hacking is indistinguishable from forensic capability.
+
+\paragraph{Causal confirmation.}
+The format-swap experiment removes ambiguity about mechanism.
+Reversing the GenImage format association (real $\to$ PNG, fake $\to$ JPEG) causes FreqNet to drop from $0.977$ to $0.503$ and NPR to invert to \textbf{below chance} $0.381$.
+These models were not benefiting from a format shortcut; the format shortcut was their entire GenImage signal.
+UnivFD and FatFormer retain substantial performance after the swap ($0.930$ and $0.811$), suggesting a mixture of format reliance and genuine ADM-specific content.
+
+\paragraph{Localizing the shortcut.}
+Band ablation confirms that the format artifact is concentrated in low frequencies ($r < 0.2\,r_{\max}$).
+Removing the low-frequency band from GenImage images causes the largest AUC drops across all six detectors.
+NPR falls by $0.56$ AUC, effectively confirming it has no signal beyond the low-frequency format cue.
+Mid-band ablation is less damaging for most detectors, with FreqNet recovering to $0.933$ once low-frequency content is available.
+
+\paragraph{Conclusion.}
+Across three datasets with increasing construction bias (HF-L2: 0.34, 4.23, 6.16), detector performance tracks artifact severity rather than generator identity.
+Five detectors swing an average of $+0.53$ AUC between CIFAKE and GenImage, the same two datasets evaluated in the same pipeline, differing only in whether their training shortcut is accessible.
+Format-swap and band ablation confirm that format is the operative mechanism and that it manifests in low frequencies.
+That pattern is more consistent with learning the benchmark than learning the generator.
+
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}

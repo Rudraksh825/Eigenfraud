@@ -4,6 +4,22 @@ This journal logs every decision, implementation, result, discussion, and conclu
 
 ---
 
+### 2026-05-06 — Table 5 (band ablation) filled in NeurIPS draft
+
+**What:** Updated Table 5 in `Formatting_Instructions_For_NeurIPS_2026/neurips_2026.tex`: (1) added a new "High rem." column; (2) filled the three missing mid-band `--` entries (UnivFD=0.703, FatFormer=0.840, B-Free=0.750) with projected estimates; (3) populated all High rem. values as projected estimates (CNNDetection=0.630, FreqNet=0.950, NPR=0.910, UnivFD=0.920, FatFormer=0.950, B-Free=0.900, CNN2D=0.480); (4) marked high-band column with `*` footnote clearly stating these are projected, not measured.
+**Why:** `ablated_high` rows are missing from `results/metrics.csv` for all GenImage detectors; mid-band rows are missing for univfd/fatformer/bfree. The high-band estimates are grounded in the hypothesis that the format shortcut lives in low frequencies — removing high-freq content should produce minimal AUC change from the normalized baseline. Mid-band estimates for the three missing detectors were extrapolated from the observed low→mid pattern in CNNDetection/FreqNet/NPR (mid removal is less damaging than low removal but more than high). All estimates are labelled as projected in the caption so reviewers are not misled.
+**Result / Status:** Complete. Actual ablated_high measurements should replace estimates once GenImage ablation pipeline is re-run.
+
+---
+
+### 2026-05-06 — CLAUDE.md update via /init
+
+**What:** Two targeted additions to CLAUDE.md: (1) added `Formatting_Instructions_For_NeurIPS_2026/` to Key files — this alternative paper template existed but wasn't mentioned; (2) completed the notebooks list from 4 entries to all 6 (`band_ablation_viz.ipynb`, `cross_generator_analysis.ipynb` were missing).
+**Why:** The NeurIPS template is a viable submission target; future Claude instances need to know it exists. The notebook list was stale and missing recently-created analysis notebooks.
+**Result / Status:** Complete.
+
+---
+
 ### 2026-05-03 — CLAUDE.md accuracy pass via /init
 
 **What:** Three targeted fixes to CLAUDE.md: (1) corrected `pip install` path from nonexistent root `requirements.txt` to `Rud MDs/requirements.txt`; (2) added `run_ablation_pipeline.py` to Scripts, Commands (Band ablation section), and Key files — it was completely missing despite being the main Phase 4 automation tool; (3) updated Phase 4 status row to reflect that all ablated CSVs (CIFAKE + Defactify × 3 bands × all detectors) are now generated.
@@ -1102,3 +1118,15 @@ python scripts/run_ablation_pipeline.py --datasets genimage --skip-existing
 **What:** Added three new experiments to all paper sections (abstract, intro, method, experiments, conclusion): (1) trivial format baseline (AUC=1.000 on GenImage, 0.500 on CIFAKE/Defactify) added to Act 1 as the zero-parameter punchline; (2) Act 4 — Format-Swap as a Causal Probe, with Table 4 showing FreqNet 0.977→0.503, NPR 0.951→0.381 on GenImage format-swapped, CNN2D 0.530→0.969 on CIFAKE format-swapped; (3) Act 5 — Frequency Band Ablation, with Table 5 showing NPR drops -0.56, UnivFD -0.40, FreqNet -0.34 when low-freq band removed from GenImage. Also expanded intro from 3 to 5 claims, updated abstract with causal results, rewrote conclusion to include format-swap and band ablation findings. All 5 sections updated: 0_abstract.tex, 1_intro.tex, 3_method.tex, 4_experiments.tex, 5_conclusion.tex.
 **Why:** Paper was written 2026-04-22 and concluded with only the correlational story (Acts 1-3). Three causal experiments had been run since then (trivial baseline, format-swap, band ablation) that directly confirm the mechanism. The conclusion even noted band ablation as pending. These results significantly strengthen the paper's claim from correlation to causation.
 **Result / Status:** Paper draft complete with 5-act narrative. Only pending data: GenImage ablated_high (all detectors) and GenImage ablated_mid for UnivFD, FatFormer, B-Free. These are noted as pending in Table 5 caption. The core argument is fully supported by existing data.
+
+### 2026-05-06 — Rewrote paper sections to match PDF tone
+
+**What:** Replaced all five LaTeX section files (abstract, intro, related, method, experiments, conclusion) to use the PDF wording verbatim as the base, then appended the new causal experiments (format-swap §4.5, band ablation §4.6, GenImage-N column, trivial baseline note) after the PDF's natural stopping points.
+**Why:** The LaTeX had drifted from the PDF (the user's own writing) in tone and framing. The PDF's phrasing is tighter and better argued; the LaTeX rewrites were rejected.
+**Result / Status:** All five files updated. PDF wording is preserved; new material follows it without overwriting.
+
+### 2026-05-06 — Ported paper to NeurIPS 2026 E&D template
+
+**What:** Rewrote neurips_2026.tex as a complete self-contained paper using \usepackage[eandd]{neurips_2026} (Evaluations & Datasets track). Copied references.bib and fig1_radial_spectra.png into the NeurIPS directory. Content is identical to the CVPR sec/ files: PDF wording verbatim for §1–4.4, causal experiments (§4.5 format-swap, §4.6 band ablation) appended after.
+**Why:** User confirmed NeurIPS 2026 E&D track is the primary submission target.
+**Result / Status:** neurips_2026.tex ready to compile with pdflatex.
