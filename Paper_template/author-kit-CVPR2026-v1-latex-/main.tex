@@ -1,6 +1,11 @@
 \documentclass[10pt,twocolumn,letterpaper]{article}
 
-\usepackage{cvpr}
+
+% \usepackage[final]{cvpr}
+\usepackage[review]{cvpr}
+
+%\newcommand{\hs}[1]{\textcolor{magenta}{(HS: #1)}}
+%\newcommand{\ra}[1]{\textcolor{orange}{(RA: #1)}}
 
 % Import additional packages in the preamble file, before hyperref
 \input{preamble}
@@ -9,15 +14,32 @@
 \usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
 
 %%%%%%%%% TITLE
-\title{When AI-Image Detectors Learn the Benchmark Instead of the Generator:\\
-Auditing Shortcut and Reward-Hacking Behavior}
+\title{When AI-Image Detectors Learn the Benchmark Instead of the Generator}
 
-%%%%%%%%% AUTHORS
-\author{Anonymous CVPR 2026 Submission}
+
+%%%%%%%%% AUTHORS - PLEASE UPDATE
+\author{Rudraksh Awasthi \\
+Institution1\\
+Institution1 address\\
+{\tt\small firstauthor@i1.org}
+% For a paper whose authors are all at the same institution,
+% omit the following lines up until the closing ``}''.
+% Additional authors and addresses can be added with ``\and'',
+% just like the second author.
+% To save space, use either the email address or home page, not both
+\and
+Harsh Soni\\ 
+Institution2\\
+First line of institution2 address\\
+{\tt\small secondauthor@i2.org}
+}
+\\
 
 \begin{document}
+
 \maketitle
 \input{sec/0_abstract}
+
 \input{sec/1_intro}
 \input{sec/2_related}
 \input{sec/3_method}
