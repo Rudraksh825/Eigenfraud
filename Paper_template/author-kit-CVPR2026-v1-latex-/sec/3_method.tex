@@ -5,7 +5,7 @@
 \label{sec:audit_method}
 
 For each dataset split, we record image count, storage format, resolution statistics, and file size. We treat two properties as likely shortcut sources:
-\begin{itemize}[itemsep=2pt,topsep=2pt]
+\begin{itemize}
   \item \textbf{Format bias:} one class is predominantly JPEG and the other PNG.
   \item \textbf{Resolution bias:} one class occupies a narrow set of canonical sizes while the other spans many natural image sizes.
 \end{itemize}
@@ -32,7 +32,7 @@ If a detector lands near $0.5$ AUC on a new dataset, that may reflect ordinary o
 \label{sec:normalize}
 
 To probe whether performance depends on file-format and size mismatches, we also evaluate a normalized variant of the test data. Every image is:
-\begin{enumerate}[itemsep=1pt,topsep=2pt]
+\begin{enumerate}
   \item Convert to RGB (strip alpha channel and EXIF metadata).
   \item Resize to $256 \times 256$ pixels using bilinear interpolation.
   \item Save as PNG (lossless; no re-JPEG-compression).
@@ -50,7 +50,7 @@ If detector performance on GenImage relies on the JPEG$=$real/PNG$=$fake pattern
 \label{sec:ablation_method}
 
 To localize which frequency ranges carry the shortcut signal, we ablate images in the frequency domain before evaluation. Each image is transformed with a 2D FFT; all components within the target radial band are set to zero; the image is reconstructed via inverse FFT and clipped to $[0, 255]$. We test three non-overlapping bands defined by radial distance $r$ from the DC component:
-\begin{itemize}[itemsep=1pt,topsep=2pt]
+\begin{itemize}
   \item \textbf{Low:} $r < 0.2\,r_{\max}$ --- DC, coarse structure, and format-induced energy differences.
   \item \textbf{Mid:} $0.2 \leq r < 0.6\,r_{\max}$ --- mid-range texture and edges.
   \item \textbf{High:} $r \geq 0.6\,r_{\max}$ --- fine detail, compression noise.
