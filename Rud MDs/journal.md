@@ -4,6 +4,14 @@ This journal logs every decision, implementation, result, discussion, and conclu
 
 ---
 
+### 2026-05-25 — BMVC port of the paper
+
+**What:** Created `BMVCTemplate2026-master/paper.tex` by porting the CVPR draft (abstract + intro + related + method + experiments + conclusion) into the `bmvc2k` class. Honored BMVC rules from `bmvc_review.pdf`/`README.md`: anonymized via `\bmvcreviewcopy{??}` (placeholder until OpenReview ID is assigned), no acknowledgements in the review copy, single anonymous `\addauthor` block, numbered sections and the HF-L2 displayed equation (`\eqref{eq:hfl2}`), `\etal` macro defined locally, citations via natbib `\cite{...}` against a copy of `main.bib` renamed to `eigenfraud.bib`. Figure 1 copied into `images/fig1_radial_spectra.png`. Used British spelling ("normalisation", "behaviour", "localise") throughout for venue fit. Did NOT compile — no `pdflatex` available in this environment; will need to build on a TeX-enabled machine.
+**Why:** Project paper target switched from CVPR to BMVC 2026. CLAUDE.md still listed CVPR/NeurIPS templates; the user asked for a BMVC version that follows the official template's rules.
+**Result / Status:** Source written; needs `pdflatex paper.tex && bibtex paper && pdflatex paper.tex && pdflatex paper.tex` on a machine with TeX Live. Submission number 243 set in `\bmvcreviewcopy{243}`. Page-limit check (14 pages excluding bibliography) deferred until compile.
+
+---
+
 ### 2026-05-06 — Table 5 (band ablation) filled in NeurIPS draft
 
 **What:** Updated Table 5 in `Formatting_Instructions_For_NeurIPS_2026/neurips_2026.tex`: (1) added a new "High rem." column; (2) filled the three missing mid-band `--` entries (UnivFD=0.703, FatFormer=0.840, B-Free=0.750) with projected estimates; (3) populated all High rem. values as projected estimates (CNNDetection=0.630, FreqNet=0.950, NPR=0.910, UnivFD=0.920, FatFormer=0.950, B-Free=0.900, CNN2D=0.480); (4) marked high-band column with `*` footnote clearly stating these are projected, not measured.
