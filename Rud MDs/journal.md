@@ -1138,3 +1138,9 @@ python scripts/run_ablation_pipeline.py --datasets genimage --skip-existing
 **What:** Rewrote neurips_2026.tex as a complete self-contained paper using \usepackage[eandd]{neurips_2026} (Evaluations & Datasets track). Copied references.bib and fig1_radial_spectra.png into the NeurIPS directory. Content is identical to the CVPR sec/ files: PDF wording verbatim for §1–4.4, causal experiments (§4.5 format-swap, §4.6 band ablation) appended after.
 **Why:** User confirmed NeurIPS 2026 E&D track is the primary submission target.
 **Result / Status:** neurips_2026.tex ready to compile with pdflatex.
+
+### 2026-05-30 — Applied language-strengthening revisions from Changes.md to BMVC paper
+
+**What:** Applied all "Current → Revised" replacements listed in `Changes.md` to `BMVCTemplate2026-master/paper.tex`. The revisions strengthen underconfident phrasing where evidence is causal/direct ("suggests"→"demonstrates"/"confirms", "consistent with"→"proves", "we interpret this as evidence"→"this is", etc.). Touched the abstract, intro, related work, methods (HF-L2 diagnostic, band-ablation rationale), and all results/discussion subsections (4.3–4.7, §5).
+**Why:** User requested the paper adopt the more assertive phrasing from `Changes.md` since the underlying experiments are controlled and direct rather than exploratory.
+**Result / Status:** Complete. One conflict resolved: the phrase "suggesting it picks up visual quality rather than compression artifacts" appears only once (abstract) but had two proposed revisions (Abstract vs Section 1 rows); used the Abstract revision since the surrounding sentence already names DINOv2, making the Section 1 variant redundant. The `bmvc_review.tex`/`bmvc_final.tex` files are the untouched original BMVC template guidelines, not the paper.
